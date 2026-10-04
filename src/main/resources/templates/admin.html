@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>mcp-forge</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <style>
+        label { display: block; font-size: 13px; font-weight: 600; margin-top: 12px; margin-bottom: 4px; color: var(--text-muted); }
+        input[type=text], select {
+            width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--input-bg); color: var(--text); font-size: 14px;
+        }
+        input[type=text]::placeholder { color: #5a6072; }
+        input[type=text]:focus, select:focus { outline: none; border-color: var(--accent); }
+        .error-text { color: var(--error-text); font-size: 12px; margin-top: 2px; }
+        .source-group { margin-bottom: 12px; border: 1px solid var(--border); background: var(--card-bg); border-radius: 10px; padding: 4px 16px; }
+        .source-group summary { cursor: pointer; font-weight: 700; font-size: 16px; padding: 12px 0; list-style: none; color: var(--text); }
+        .source-group summary::-webkit-details-marker { display: none; }
+        .source-group summary::before { content: "▶"; display: inline-block; margin-right: 8px; font-size: 12px; color: var(--accent); transition: transform 0.15s; }
+        .source-group[open] summary::before { transform: rotate(90deg); }
+        .source-group .tool:last-child { margin-bottom: 16px; }
+        .tool { padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--input-bg); margin-bottom: 6px; border-radius: 0 6px 6px 0; }
+        .tool .name { font-family: monospace; font-weight: 600; color: var(--text); }
+        .tool .method { color: var(--text-muted); font-size: 13px; }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            border: 1px solid var(--border); background: var(--card-bg); border-radius: 8px;
+            padding: 10px 16px; margin-bottom: 8px;
+        }
+        .history-item .name { font-weight: 700; }
+        .history-item .url { color: var(--text-muted); font-size: 13px; font-family: monospace; display: block; }
+        .history-item form { margin: 0; }
+    </style>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('home')}"></th:block>
+
+<div class="alert success" th:if="${successMessage}" th:text="${successMessage}"></div>
+<div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+<div class="card">
+    <h2>Registra una nuova fonte</h2>
+    <form th:action="@{/register}" th:object="${form}" method="post">
+        <label for="name">Nome fonte</label>
+        <input type="text" id="name" th:field="*{name}" placeholder="es. petstore">
+        <div class="error-text" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+
+        <label for="openApiUrl">URL spec OpenAPI</label>
+        <input type="text" id="openApiUrl" th:field="*{openApiUrl}" placeholder="https://.../openapi.json">
+        <div class="error-text" th:if="${#fields.hasErrors('openApiUrl')}" th:errors="*{openApiUrl}"></div>
+
+        <label for="baseUrl">Base URL dell'API</label>
+        <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://api.esempio.it">
+        <div class="error-text" th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}"></div>
+
+        <label for="authHeaderName">Header di autenticazione (opzionale)</label>
+        <select id="authHeaderName" th:field="*{authHeaderName}">
+            <option value="">Nessuno</option>
+            <option value="Authorization">Authorization (Bearer / Basic)</option>
+            <option value="X-API-Key">X-API-Key</option>
+            <option value="Api-Key">Api-Key</option>
+            <option value="X-Auth-Token">X-Auth-Token</option>
+        </select>
+
+        <label for="authHeaderValue">Valore header (opzionale)</label>
+        <input type="text" id="authHeaderValue" th:field="*{authHeaderValue}" placeholder="Bearer ...">
+
+        <button type="submit">Registra e genera tool</button>
+    </form>
+</div>
+
+<div th:if="${lastRegistration != null}">
+    <h2>Ultima registrazione</h2>
+    <div class="history-item">
+        <div>
+            <span class="name" th:text="${lastRegistration.name}"></span>
+            <span class="url" th:text="${lastRegistration.openApiUrl}"></span>
+        </div>
+        <form th:action="@{/replay}" method="post">
+            <input type="hidden" name="name" th:value="${lastRegistration.name}">
+            <input type="hidden" name="openApiUrl" th:value="${lastRegistration.openApiUrl}">
+            <input type="hidden" name="baseUrl" th:value="${lastRegistration.baseUrl}">
+            <input type="hidden" name="authHeaderName" th:value="${lastRegistration.authHeaderName}">
+            <input type="hidden" name="authHeaderValue" th:value="${lastRegistration.authHeaderValue}">
+            <button type="submit" class="small-btn">Reinserisci</button>
+        </form>
+    </div>
+</div>
+
+<h2>Fonti attive ora</h2>
+<p class="empty" th:if="${sourceGroups.isEmpty()}">Nessuna fonte attiva — registra o reinserisci una fonte sopra.</p>
+
+<details class="source-group" th:each="entry : ${sourceGroups}">
+    <summary th:text="${entry.key} + ' (' + ${entry.value.size()} + ' tool)'"></summary>
+    <div class="tool" th:each="tool : ${entry.value}">
+        <span class="name" th:text="${tool.fullToolName()}"></span><br>
+        <span class="method" th:text="${tool.operation().httpMethod()} + ' ' + ${tool.operation().path()}"></span>
+    </div>
+</details>
+
+</body>
+</html>

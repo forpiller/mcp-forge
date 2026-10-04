@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>mcp-forge — Storico</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <style>
+        .history-item {
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+            border: 1px solid var(--border); background: var(--card-bg); border-radius: 8px;
+            padding: 14px 16px; margin-bottom: 10px;
+        }
+        .history-item .name { font-weight: 700; font-size: 15px; display: block; margin-bottom: 8px; }
+        .history-fields { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; }
+        .history-fields .field-label { color: var(--text-muted); white-space: nowrap; }
+        .history-fields .field-value { font-family: monospace; color: var(--text); word-break: break-all; }
+        .history-item form { margin: 0; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('storico')}"></th:block>
+
+<div class="alert success" th:if="${successMessage}" th:text="${successMessage}"></div>
+<div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+<h2>Storico registrazioni</h2>
+<p class="subtitle">Solo i dati inseriti nel form — non i tool generati. Utile per reinserire una fonte dopo un riavvio senza riscrivere il form.</p>
+<p class="empty" th:if="${history.isEmpty()}">Nessuna registrazione salvata ancora.</p>
+<div class="history-item" th:each="h : ${history}">
+    <div>
+        <span class="name" th:text="${h.name}"></span>
+        <div class="history-fields">
+            <span class="field-label">URL spec OpenAPI</span>
+            <span class="field-value" th:text="${h.openApiUrl}"></span>
+
+            <span class="field-label">Base URL</span>
+            <span class="field-value" th:text="${h.baseUrl}"></span>
+
+            <span class="field-label">Header auth</span>
+            <span class="field-value" th:text="${h.authHeaderName != null and !h.authHeaderName.isBlank()} ? ${h.authHeaderName} : 'Nessuno'"></span>
+
+            <span class="field-label">Valore header</span>
+            <span class="field-value" th:text="${h.authHeaderValue != null and !h.authHeaderValue.isBlank()} ? ${h.authHeaderValue} : 'Nessuno'"></span>
+        </div>
+    </div>
+    <form th:action="@{/replay}" method="post">
+        <input type="hidden" name="name" th:value="${h.name}">
+        <input type="hidden" name="openApiUrl" th:value="${h.openApiUrl}">
+        <input type="hidden" name="baseUrl" th:value="${h.baseUrl}">
+        <input type="hidden" name="authHeaderName" th:value="${h.authHeaderName}">
+        <input type="hidden" name="authHeaderValue" th:value="${h.authHeaderValue}">
+        <button type="submit" class="small-btn">Reinserisci</button>
+    </form>
+</div>
+
+</body>
+</html>

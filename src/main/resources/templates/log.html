@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>mcp-forge — Log</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <style>
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        tr:hover td { background: var(--input-bg); }
+        td.mono { font-family: monospace; }
+        .badge-ok { color: var(--success-text); font-weight: 600; }
+        .badge-err { color: var(--error-text); }
+        .log-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .log-controls .size-form { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+        .log-controls select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 13px; }
+        .total-count { font-size: 13px; color: var(--text-muted); }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; font-size: 13px; }
+        .pagination a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .pagination a:hover { text-decoration: underline; }
+        .pagination .disabled { color: var(--text-muted); opacity: 0.4; }
+    </style>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('log')}"></th:block>
+
+<h2>Audit log</h2>
+
+<div class="log-controls" th:unless="${entries.isEmpty()}">
+    <span class="total-count" th:text="${entries.totalElements} + ' chiamate totali'"></span>
+    <form method="get" th:action="@{/log}" class="size-form">
+        <label for="size">Righe per pagina</label>
+        <select id="size" name="size" onchange="this.form.submit()">
+            <option value="10" th:selected="${size == 10}">10</option>
+            <option value="20" th:selected="${size == 20}">20</option>
+            <option value="50" th:selected="${size == 50}">50</option>
+            <option value="100" th:selected="${size == 100}">100</option>
+        </select>
+    </form>
+</div>
+
+<p class="empty" th:if="${entries.isEmpty()}">Nessuna chiamata registrata ancora.</p>
+
+<table th:unless="${entries.isEmpty()}">
+    <thead>
+    <tr>
+        <th>Quando</th>
+        <th>Fonte</th>
+        <th>Tool</th>
+        <th>Stato</th>
+        <th>Durata</th>
+        <th>Esito</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="entry : ${entries}">
+        <td class="mono" th:text="${#temporals.format(entry.createdAt, 'dd/MM HH:mm:ss')}"></td>
+        <td th:text="${entry.sourceName}"></td>
+        <td class="mono" th:text="${entry.toolName}"></td>
+        <td th:text="${entry.httpStatus} ?: '—'"></td>
+        <td th:text="${entry.durationMs} + ' ms'"></td>
+        <td>
+            <span class="badge-ok" th:if="${entry.success}">OK</span>
+            <span class="badge-err" th:unless="${entry.success}" th:text="${entry.errorMessage}"></span>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="pagination" th:if="${entries.totalPages > 1}">
+    <a th:if="${entries.hasPrevious()}" th:href="@{/log(page=${entries.number - 1}, size=${size})}">&laquo; Precedente</a>
+    <span th:unless="${entries.hasPrevious()}" class="disabled">&laquo; Precedente</span>
+
+    <span th:text="'Pagina ' + ${entries.number + 1} + ' di ' + ${entries.totalPages}"></span>
+
+    <a th:if="${entries.hasNext()}" th:href="@{/log(page=${entries.number + 1}, size=${size})}">Successiva &raquo;</a>
+    <span th:unless="${entries.hasNext()}" class="disabled">Successiva &raquo;</span>
+</div>
+
+</body>
+</html>
