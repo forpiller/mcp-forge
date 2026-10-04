@@ -68,6 +68,12 @@
             <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
         </dependency>
 
+        <!-- Chat locale via Ollama (hermes3) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
+
         <!-- OpenAPI parsing -->
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>

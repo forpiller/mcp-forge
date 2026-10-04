@@ -38,26 +38,38 @@ public class McpToolFactory {
     public McpServerFeatures.SyncToolSpecification buildSpecification(RegisteredTool registeredTool) {
         McpSchema.Tool tool = McpSchema.Tool.builder(registeredTool.fullToolName())
                 .description(buildDescription(registeredTool))
-                .inputSchema(buildInputSchema(registeredTool.operation()))
+                .inputSchema(McpSchema.JsonSchema.builder()
+                        .type("object")
+                        .properties(buildInputSchemaProperties(registeredTool.operation()))
+                        .required(buildRequiredFields(registeredTool.operation()))
+                        .build())
                 .build();
 
         return McpServerFeatures.SyncToolSpecification.builder()
                 .tool(tool)
-                .callHandler((exchange, request) -> handleCall(registeredTool, request))
+                .callHandler((exchange, request) -> {
+                    Map<String, Object> arguments = request.arguments() != null ? request.arguments() : Map.of();
+                    ToolInvocationOutcome outcome = invokeWithGuards(registeredTool, arguments);
+                    return McpSchema.CallToolResult.builder()
+                            .addTextContent(outcome.text())
+                            .isError(!outcome.success())
+                            .build();
+                })
                 .build();
     }
 
-    private McpSchema.CallToolResult handleCall(RegisteredTool registeredTool, McpSchema.CallToolRequest request) {
-        Map<String, Object> arguments = request.arguments() != null ? request.arguments() : Map.of();
+    /**
+     * Logica condivisa tra il protocollo MCP e la chat locale (Ollama): rate
+     * limit, chiamata reale, audit log — un solo punto da cui passano tutte
+     * le invocazioni di tool, qualunque sia il client che le ha innescate.
+     */
+    public ToolInvocationOutcome invokeWithGuards(RegisteredTool registeredTool, Map<String, Object> arguments) {
         String sourceName = registeredTool.source().name();
         String toolName = registeredTool.fullToolName();
 
         if (!rateLimiterService.tryConsume(sourceName, toolName)) {
             auditLogService.record(sourceName, toolName, arguments, null, 0, false, "rate limit superato");
-            return McpSchema.CallToolResult.builder()
-                    .addTextContent("Rate limit superato per '" + toolName + "'. Riprova più tardi.")
-                    .isError(true)
-                    .build();
+            return new ToolInvocationOutcome(false, "Rate limit superato per '" + toolName + "'. Riprova più tardi.");
         }
 
         long start = System.currentTimeMillis();
@@ -68,26 +80,20 @@ public class McpToolFactory {
                 result.success(), result.errorMessage());
 
         if (result.success()) {
-            return McpSchema.CallToolResult.builder()
-                    .addTextContent(result.body() != null ? result.body() : "")
-                    .build();
+            return new ToolInvocationOutcome(true, result.body() != null ? result.body() : "");
         }
 
-        return McpSchema.CallToolResult.builder()
-                .addTextContent("Errore chiamando '" + toolName + "': " + result.errorMessage())
-                .isError(true)
-                .build();
+        return new ToolInvocationOutcome(false, "Errore chiamando '" + toolName + "': " + result.errorMessage());
     }
 
-    private String buildDescription(RegisteredTool registeredTool) {
+    public String buildDescription(RegisteredTool registeredTool) {
         OperationDescriptor op = registeredTool.operation();
         String summary = op.summary() != null ? op.summary() : (op.httpMethod() + " " + op.path());
         return "[" + registeredTool.source().name() + "] " + summary;
     }
 
-    private McpSchema.JsonSchema buildInputSchema(OperationDescriptor operation) {
+    public Map<String, Object> buildInputSchemaProperties(OperationDescriptor operation) {
         Map<String, Object> properties = new LinkedHashMap<>();
-        List<String> required = new ArrayList<>();
 
         for (ParamDescriptor param : operation.parameters()) {
             Map<String, Object> propertySchema = new LinkedHashMap<>();
@@ -96,9 +102,6 @@ public class McpToolFactory {
                 propertySchema.put("description", param.description());
             }
             properties.put(param.name(), propertySchema);
-            if (param.required()) {
-                required.add(param.name());
-            }
         }
 
         if (operation.hasRequestBody()) {
@@ -110,11 +113,17 @@ public class McpToolFactory {
             properties.put("body", bodySchema);
         }
 
-        return McpSchema.JsonSchema.builder()
-                .type("object")
-                .properties(properties)
-                .required(required)
-                .build();
+        return properties;
+    }
+
+    public List<String> buildRequiredFields(OperationDescriptor operation) {
+        List<String> required = new ArrayList<>();
+        for (ParamDescriptor param : operation.parameters()) {
+            if (param.required()) {
+                required.add(param.name());
+            }
+        }
+        return required;
     }
 
     private String mapJsonSchemaType(String openApiType) {

@@ -31,6 +31,13 @@ spring:
         version: 0.0.1
         type: SYNC
         protocol: STREAMABLE
+    ollama:
+      base-url: http://localhost:11435
+      chat:
+        options:
+          model: hermes3
+          temperature: 0.1
+          num-ctx: 4096
 
 mcp-forge:
   ratelimit:
