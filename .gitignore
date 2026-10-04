@@ -1,0 +1,10 @@
+target/
+*.jar
+*.war
+data/
+*.mv.db
+*.trace.db
+.env
+.idea/
+*.iml
+.DS_Store
