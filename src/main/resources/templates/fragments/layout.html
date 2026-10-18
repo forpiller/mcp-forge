@@ -2,43 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 <th:block th:fragment="styles">
-<style>
-    :root {
-        --bg: #1e212b;
-        --card-bg: #262a36;
-        --input-bg: #1a1d25;
-        --border: #3a3f4d;
-        --text: #e8e9ed;
-        --text-muted: #9099ab;
-        --accent: #4ab0dd;
-        --accent-hover: #3993ba;
-        --success-bg: #1d3328;
-        --success-text: #5fd98a;
-        --error-bg: #3a2226;
-        --error-text: #f28b8b;
-    }
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, system-ui, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 20px; background: var(--bg); color: var(--text); }
-    h1 { margin-bottom: 4px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
-    h2 { color: var(--text); }
-    .subtitle { color: var(--text-muted); margin-top: 0; }
-    .topbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
-    .topnav { display: flex; gap: 20px; margin-top: 10px; }
-    .topnav a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; padding-bottom: 4px; border-bottom: 2px solid transparent; }
-    .topnav a:hover { color: var(--text); }
-    .topnav a.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .card { border: 1px solid var(--border); background: var(--card-bg); border-radius: 10px; padding: 20px; margin-bottom: 24px; }
-    button {
-        margin-top: 18px; background: var(--accent); color: white; border: none;
-        padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
-    }
-    button:hover { background: var(--accent-hover); }
-    button.small-btn { margin-top: 0; padding: 6px 14px; font-size: 13px; }
-    .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-    .alert.success { background: var(--success-bg); color: var(--success-text); }
-    .alert.error { background: var(--error-bg); color: var(--error-text); }
-    .empty { color: var(--text-muted); font-style: italic; }
-</style>
+<link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+<link rel="stylesheet" th:href="@{/css/global.css}">
 </th:block>
 </head>
 <body>
@@ -46,16 +11,40 @@
 <div class="topbar">
     <div>
         <h1>MCP-FORGE</h1>
-        <p class="subtitle">Registra una fonte API e genera automaticamente i suoi tool MCP.</p>
+        <p class="subtitle" th:text="#{app.subtitle}">Registra una fonte API e genera automaticamente i suoi tool MCP.</p>
     </div>
     <nav class="topnav">
-        <a href="/" th:classappend="${active == 'home'} ? ' active'">Home</a>
-        <a href="/storico" th:classappend="${active == 'storico'} ? ' active'">Storico</a>
-        <a href="/log" th:classappend="${active == 'log'} ? ' active'">Log</a>
-        <a href="/connetti" th:classappend="${active == 'connetti'} ? ' active'">Connetti</a>
-        <a href="/chat" th:classappend="${active == 'chat'} ? ' active'">Chat</a>
+        <a href="/" th:classappend="${active == 'home'} ? ' active'" th:text="#{nav.home}">Home</a>
+        <a href="/fonti" th:classappend="${active == 'fonti'} ? ' active'" th:text="#{nav.fonti}">Fonti</a>
+        <a href="/log" th:classappend="${active == 'log'} ? ' active'" th:text="#{nav.log}">Log</a>
+        <a href="/connetti" th:classappend="${active == 'connetti'} ? ' active'" th:text="#{nav.connetti}">Connetti</a>
+        <a href="/chat" th:classappend="${active == 'chat'} ? ' active'" th:text="#{nav.chat}">Chat</a>
+        <a href="/ports" th:classappend="${active == 'ports'} ? ' active'" th:text="#{nav.servizi}">Servizi</a>
+        <div class="lang-switcher">
+            <a href="?lang=it" class="lang-btn" th:classappend="${#locale.language == 'it'} ? ' active'">IT</a>
+            <a href="?lang=en" class="lang-btn" th:classappend="${#locale.language == 'en'} ? ' active'">EN</a>
+        </div>
     </nav>
 </div>
 </th:block>
+
+<th:block th:fragment="confirmModal">
+<div class="modal-overlay" id="confirmModalOverlay">
+    <div class="modal-box" role="alertdialog" aria-modal="true">
+        <h3 id="confirmModalTitle" th:text="#{modal.confirm}">Conferma</h3>
+        <p id="confirmModalMessage"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="confirmModalCancel" th:text="#{modal.cancel}">Annulla</button>
+            <button type="button" class="btn-danger" id="confirmModalOk" th:text="#{modal.confirm}">Conferma</button>
+        </div>
+    </div>
+</div>
+</th:block>
+
+
+<th:block th:fragment="scripts">
+<script th:src="@{/js/global.js}"></script>
+</th:block>
+
 </body>
 </html>

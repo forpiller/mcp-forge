@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'mcp-forge — Log: ' + ${sourceName}">mcp-forge — Log</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <style>
+        body { max-width: 98vw !important; padding: 0 12px !important; }
+        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .log-meta { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+        .log-controls { display: flex; gap: 8px; align-items: center; }
+        .log-controls label { font-size: 13px; color: var(--text-muted); }
+        .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success-text); margin-right: 5px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        .log-box {
+            background: #0e1016;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #c8d0db;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .log-box .log-warn  { color: #f5c842; }
+        .log-box .log-error { color: #f28b8b; }
+        .log-box .log-info  { color: #7ec8e3; }
+        .log-box .log-debug { color: #8a9bb0; }
+        .log-empty { color: var(--text-muted); font-style: italic; font-size: 14px; padding: 20px; text-align: center; }
+        .back-link { color: var(--text-muted); text-decoration: none; font-size: 13px; }
+        .back-link:hover { color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('ports')}"></th:block>
+
+<div class="log-header">
+    <div>
+        <a href="/ports" class="back-link" th:text="#{log.back}">← Servizi</a>
+        <h2 style="margin: 4px 0 0;" th:text="${sourceName}"></h2>
+        <span class="log-meta" th:text="${logFile}" style="opacity:0.7;"></span>
+    </div>
+    <div class="log-controls">
+        <span><span class="live-dot" id="liveDot"></span><span id="liveStatus" th:text="#{log.status.listening}">in ascolto…</span></span>
+        <label><input type="checkbox" id="autoScroll" checked> <span th:text="#{log.label.autoscroll}">Auto-scroll</span></label>
+        <button type="button" id="btnLogRestart" class="small-btn btn-reconnect" th:text="#{ports.btn.restart}">Riavvia</button>
+        <button type="button" id="btnLogStop" class="small-btn btn-danger" th:text="#{ports.btn.stop}">Termina</button>
+        <button type="button" class="small-btn btn-secondary" onclick="clearDisplay()" th:text="#{log.btn.clear}">Pulisci</button>
+    </div>
+</div>
+
+<div class="log-box" id="logBox">
+    <div class="log-empty" th:if="${lines.isEmpty()}" th:text="#{log.empty}">Nessun log disponibile.</div>
+    <th:block th:unless="${lines.isEmpty()}">
+        <span th:each="line : ${lines}" th:utext="${line + '&#10;'}" class="log-line"></span>
+    </th:block>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:inline="javascript">
+    const sourceName = [[${sourceName}]];
+    let lastLineCount = [[${lines.size()}]];
+    let cleared = false;
+    const i18nLog = {
+        listening: /*[[#{log.status.listening}]]*/ 'in ascolto…',
+        notFound: /*[[#{log.status.notFound}]]*/ 'file non trovato',
+        lines: /*[[#{log.status.lines}]]*/ 'righe'
+    };
+
+    function colorize(line) {
+        if (line.includes(' ERROR ') || line.includes('Exception') || line.includes('FAILED')) {
+            return `<span class="log-error">${escHtml(line)}</span>`;
+        } else if (line.includes(' WARN ')) {
+            return `<span class="log-warn">${escHtml(line)}</span>`;
+        } else if (line.includes(' INFO ')) {
+            return `<span class="log-info">${escHtml(line)}</span>`;
+        } else if (line.includes(' DEBUG ')) {
+            return `<span class="log-debug">${escHtml(line)}</span>`;
+        }
+        return escHtml(line);
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function clearDisplay() {
+        cleared = true;
+        document.getElementById('logBox').innerHTML = '';
+        lastLineCount = 0;
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(`/ports/${encodeURIComponent(sourceName)}/log/tail?lines=500`);
+            const data = await res.json();
+            const box = document.getElementById('logBox');
+            const dot = document.getElementById('liveDot');
+            const status = document.getElementById('liveStatus');
+
+            if (!data.exists) {
+                status.textContent = i18nLog.notFound;
+                dot.style.background = '#f28b8b';
+                return;
+            }
+            dot.style.background = 'var(--success-text)';
+            status.textContent = data.lines.length + ' ' + i18nLog.lines;
+
+            const lines = data.lines;
+            if (lines.length !== lastLineCount || cleared) {
+                cleared = false;
+                box.innerHTML = lines.map(l => colorize(l) + '\n').join('');
+                lastLineCount = lines.length;
+                if (document.getElementById('autoScroll').checked) {
+                    box.scrollTop = box.scrollHeight;
+                }
+            }
+        } catch (_) {}
+    }
+
+    poll();
+    setInterval(poll, 2000);
+
+    const box = document.getElementById('logBox');
+    if (box) box.scrollTop = box.scrollHeight;
+
+    document.getElementById('btnLogRestart')?.addEventListener('click', async () => {
+        const btn = document.getElementById('btnLogRestart');
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+            const res = await fetch(`/ports/${encodeURIComponent(sourceName)}/restart`, {method: 'POST'});
+            const data = await res.json();
+            btn.textContent = btn.dataset.label || 'Riavvia';
+            if (!data.success && !data.needsConfig) {
+                alert('Errore avvio');
+            }
+        } catch (_) {
+            btn.textContent = btn.dataset.label || 'Riavvia';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('btnLogStop')?.addEventListener('click', async () => {
+        const btn = document.getElementById('btnLogStop');
+        btn.disabled = true;
+        try {
+            await fetch(`/ports/${encodeURIComponent(sourceName)}/kill`, {method: 'POST'});
+        } finally {
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

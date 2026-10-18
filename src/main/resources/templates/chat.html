@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>mcp-forge — Chat</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/chat.css}">
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('chat')}"></th:block>
+
+<div th:if="${!ollamaAvailable}" class="ollama-unavailable">
+    <span class="unavailable-badge" th:text="#{chat.ollama.unavailable}">● Ollama unreachable</span>
+    <h3 th:text="#{chat.ollama.activate.title}">How to activate local chat</h3>
+    <p style="font-size:14px;color:var(--text-muted);margin:0 0 4px;" th:text="#{chat.ollama.activate.desc}">Chat uses Ollama (hermes3) as the local LLM — no cost, no account.</p>
+    <ol class="step-list">
+        <li>
+            <strong th:text="#{chat.ollama.step1.title}">Install Ollama</strong><br>
+            macOS: <code>brew install ollama</code><br>
+            <span style="font-size:12px;">Or download the installer from <strong>ollama.com</strong></span>
+        </li>
+        <li>
+            <strong th:text="#{chat.ollama.step2.title}">Start the Ollama server</strong>
+            <span th:text="#{chat.ollama.step2.desc}"> (in a separate terminal, keep it open):</span><br>
+            <code>ollama serve</code>
+        </li>
+        <li>
+            <strong th:text="#{chat.ollama.step3.title}">Download the Hermes 3 model</strong>
+            <span th:text="#{chat.ollama.step3.desc}"> (about 4.7 GB, one-time):</span><br>
+            <code>ollama pull hermes3</code>
+        </li>
+        <li>
+            <strong th:text="#{chat.ollama.step4.title}">Reload this page</strong>
+            <span th:text="#{chat.ollama.step4.desc}">— the chat will activate automatically.</span>
+        </li>
+    </ol>
+    <div class="note">
+        <strong th:text="#{chat.ollama.note.label}">Note:</strong>
+        <span th:text="#{chat.ollama.note.text}">local chat requires about 5–8 GB of free RAM and may be slow on less powerful machines. For a better experience — with no hardware requirements — connect Claude, Gemini or Cursor directly to mcp-forge via the</span>
+        <a href="/connetti" th:text="#{chat.ollama.note.connect}">Connect</a><span th:text="#{chat.ollama.note.suffix}"> page: just copy a command, then use your favorite AI with all the tools ready.</span>
+    </div>
+</div>
+
+<div th:classappend="${!ollamaAvailable} ? 'chat-body-disabled'">
+
+    <p class="subtitle" th:text="#{chat.subtitle}">Local chat via Ollama (hermes3) — remembers previous messages in this conversation.</p>
+
+    <div class="toolbar">
+        <span></span>
+        <form th:action="@{/chat/pulisci}" method="post">
+            <button type="submit" class="small-btn" th:text="#{chat.btn.clear}">Clear conversation</button>
+        </form>
+    </div>
+
+    <div class="terminal" id="terminal">
+        <p class="empty-hint" th:if="${turns.isEmpty()}" th:text="#{chat.terminal.empty}">No messages yet. Type something below.</p>
+        <div class="line" th:each="t : ${turns}" th:classappend="${t.role}">
+            <span class="prefix" th:text="${t.role == 'user'} ? '&gt;' : (${t.role == 'error'} ? '[error]' : 'hermes3:')"></span>
+            <span th:text="${t.content}"></span>
+        </div>
+    </div>
+
+    <form id="chatForm" th:action="@{/chat}" method="post" onsubmit="return showThinking()">
+
+        <details class="tool-picker" th:open="${sourceGroups.size()} &lt;= 1">
+            <summary><span th:text="#{chat.tools.selected}">Selected tools:</span> <span id="selectedCount" th:text="${selectedTools.size()}"></span></summary>
+            <div class="tool-picker-body">
+                <div class="tool-picker-actions">
+                    <a onclick="toggleAllTools(true); return false;" th:text="#{chat.tools.selectAll}">Select all</a> ·
+                    <a onclick="toggleAllTools(false); return false;" th:text="#{chat.tools.none}">None</a>
+                </div>
+                <div th:each="entry : ${sourceGroups}">
+                    <div class="tool-picker-source" th:text="${entry.key}"></div>
+                    <label class="tool-picker-item" th:each="tool : ${entry.value}">
+                        <input type="checkbox" name="tools" th:value="${tool.fullToolName()}" th:checked="${selectedTools.contains(tool.fullToolName())}" onchange="updateSelectedCount()">
+                        <span th:text="${tool.fullToolName()}"></span>
+                    </label>
+                </div>
+            </div>
+        </details>
+
+        <div class="chat-form">
+            <input type="text" id="messageInput" name="message" th:placeholder="#{chat.input.placeholder}" autocomplete="off" th:autofocus="${ollamaAvailable}">
+            <button type="submit" id="sendBtn" th:text="#{chat.btn.send}">Send</button>
+        </div>
+    </form>
+
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/chat.js}"></script>
+</body>
+</html>

@@ -1,11 +1,9 @@
 package it.forpiller.mcpforge.web;
 
-import it.forpiller.mcpforge.ingest.OpenApiIngestService;
-import it.forpiller.mcpforge.ingest.OperationDescriptor;
-import it.forpiller.mcpforge.mcp.SourceConfig;
-import it.forpiller.mcpforge.mcp.ToolRegistrar;
+import it.forpiller.mcpforge.service.SourceRegistrationService;
 import it.forpiller.mcpforge.web.dto.RegisterSourceRequest;
 import it.forpiller.mcpforge.web.dto.RegisterSourceResponse;
+import it.forpiller.mcpforge.web.dto.SourceRegistrationInput;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,32 +13,26 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Admin endpoint: registra una fonte API (spec OpenAPI + base URL + auth)
- * e genera al volo i tool MCP corrispondenti, subito disponibili ai client
- * MCP connessi senza riavviare l'applicazione.
- */
 @RestController
 @RequestMapping("/api/sources")
 public class SourceRegistrationController {
 
-    private final OpenApiIngestService openApiIngestService;
-    private final ToolRegistrar toolRegistrar;
+    private final SourceRegistrationService sourceRegistrationService;
 
-    public SourceRegistrationController(OpenApiIngestService openApiIngestService, ToolRegistrar toolRegistrar) {
-        this.openApiIngestService = openApiIngestService;
-        this.toolRegistrar = toolRegistrar;
+    public SourceRegistrationController(SourceRegistrationService sourceRegistrationService) {
+        this.sourceRegistrationService = sourceRegistrationService;
     }
 
     @PostMapping
     public ResponseEntity<RegisterSourceResponse> register(@Valid @RequestBody RegisterSourceRequest request) {
-        List<OperationDescriptor> operations = openApiIngestService.ingest(request.openApiUrl());
+        SourceRegistrationInput input = new SourceRegistrationInput(
+                request.name(), request.openApiUrl(), request.baseUrl(),
+                request.authHeaderName(), request.authHeaderValue(),
+                request.oauth2TokenUrl(), request.oauth2ClientId(), request.oauth2ClientSecret(),
+                request.oauth2Username(), request.oauth2Password(),
+                null, null, null, null);
 
-        SourceConfig source = new SourceConfig(
-                request.name(), request.baseUrl(), request.authHeaderName(), request.authHeaderValue());
-
-        List<String> toolNames = toolRegistrar.registerSource(source, operations);
-
+        List<String> toolNames = sourceRegistrationService.register(input);
         return ResponseEntity.ok(new RegisterSourceResponse(request.name(), toolNames.size(), toolNames));
     }
 }

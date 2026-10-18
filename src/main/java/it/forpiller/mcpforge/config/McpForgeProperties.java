@@ -9,6 +9,7 @@ public class McpForgeProperties {
 
     private final RateLimit ratelimit = new RateLimit();
     private final Audit audit = new Audit();
+    private final SpecWatcher specWatcher = new SpecWatcher();
 
     public RateLimit getRatelimit() {
         return ratelimit;
@@ -16,6 +17,10 @@ public class McpForgeProperties {
 
     public Audit getAudit() {
         return audit;
+    }
+
+    public SpecWatcher getSpecWatcher() {
+        return specWatcher;
     }
 
     public static class RateLimit {
@@ -49,6 +54,18 @@ public class McpForgeProperties {
         public void setRefillPeriodSeconds(long refillPeriodSeconds) {
             this.refillPeriodSeconds = refillPeriodSeconds;
         }
+    }
+
+    public static class SpecWatcher {
+        /** Abilita il controllo periodico delle modifiche allo spec OpenAPI. */
+        private boolean enabled = true;
+        /** Intervallo tra un controllo e il successivo, in millisecondi. Default: 60 secondi. */
+        private long intervalMs = 60_000;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public long getIntervalMs() { return intervalMs; }
+        public void setIntervalMs(long intervalMs) { this.intervalMs = intervalMs; }
     }
 
     public static class Audit {

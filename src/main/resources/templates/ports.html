@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'mcp-forge — ' + #{ports.title}">mcp-forge — Servizi</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/ports.css}">
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('ports')}"></th:block>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <h2 style="margin:0;" th:text="#{ports.title}">Servizi</h2>
+    <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="small-btn btn-secondary" id="btnDiscover" th:text="#{ports.btn.discover}">⚡ Discover</button>
+        <button type="button" class="small-btn btn-secondary" id="btnNewService" th:text="#{ports.btn.add}">+ Aggiungi</button>
+    </div>
+</div>
+<p class="subtitle" th:text="#{ports.subtitle}">Stato dei servizi registrati.</p>
+
+<!-- Form nuovo servizio -->
+<div class="port-card" id="newServicePanel" style="display:none; margin-bottom:20px;">
+    <strong style="font-size:14px;" th:text="#{ports.new.title}">Nuovo servizio</strong>
+    <div class="config-panel" style="display:block; border-top:none; padding-top:10px; margin-top:8px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 16px;">
+            <div class="config-row">
+                <label th:text="#{ports.label.name}">Nome</label>
+                <input type="text" class="config-input" id="ns-name" th:placeholder="#{ports.ph.name}">
+            </div>
+            <div class="config-row">
+                <label th:text="#{ports.label.baseUrl}">URL base</label>
+                <input type="text" class="config-input" id="ns-baseurl" th:placeholder="#{ports.ph.baseUrl}">
+            </div>
+        </div>
+        <div class="config-row">
+            <label th:text="#{ports.label.startCommand}">Comando di avvio</label>
+            <input type="text" class="config-input" id="ns-cmd" th:placeholder="#{ports.ph.startCommand}">
+        </div>
+        <div class="config-row">
+            <label th:text="#{ports.label.workingDir}">Directory di lavoro</label>
+            <div class="input-browse">
+                <input type="text" class="config-input" id="ns-dir" th:placeholder="#{ports.ph.workingDir}">
+                <button type="button" class="small-btn btn-secondary btn-browse-dir" data-target-id="ns-dir" title="Sfoglia">📁</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:120px 1fr; gap:0 16px;">
+            <div class="config-row">
+                <label th:text="#{ports.label.jdkVersion}">JDK version</label>
+                <select class="config-input" id="ns-jdk">
+                    <option value="21">21</option>
+                </select>
+            </div>
+            <div class="config-row">
+                <label th:utext="#{ports.label.envVars.hint}">Variabili d'ambiente</label>
+                <input type="text" class="config-input" id="ns-env" th:placeholder="#{ports.ph.envVars}">
+            </div>
+        </div>
+        <div class="config-actions" style="margin-top:4px;">
+            <button type="button" class="small-btn" id="btnSaveNewService" th:text="#{ports.btn.save}">Salva</button>
+            <button type="button" class="small-btn btn-secondary" id="btnCancelNewService" th:text="#{ports.btn.cancel}">Annulla</button>
+            <span id="ns-result" style="font-size:13px;"></span>
+        </div>
+    </div>
+</div>
+
+<div id="port-cards-container" th:fragment="cardList">
+
+<p class="empty" th:if="${ports.isEmpty()}" th:text="#{ports.empty}">Nessuna fonte registrata ancora.</p>
+
+<div class="port-card" th:each="p : ${ports}" th:id="${'port-card-' + p.sourceName}"
+     th:classappend="${(p.dockerManaged ? 'docker-card ' : '') + (!p.up ? 'port-card--down' : '')}">
+
+    <div class="port-header">
+        <div class="port-info">
+            <span class="port-name" th:text="${p.sourceName}"></span>
+            <span class="port-number">:<span th:text="${p.port > 0} ? ${p.port} : '?'"></span></span>
+            <span class="docker-badge" th:if="${p.dockerManaged}" th:text="#{ports.docker.badge}">🐳 Docker</span>
+        </div>
+        <div class="port-status">
+            <span class="badge badge-up" th:if="${p.up}">UP</span>
+            <span class="badge badge-down" th:unless="${p.up}">DOWN</span>
+            <span class="port-pid" th:if="${p.pid != null}">PID <span th:text="${p.pid}"></span></span>
+        </div>
+    </div>
+
+    <div class="port-url">
+        <a th:href="${p.baseUrl}" th:text="${p.baseUrl}" target="_blank" rel="noopener"></a>
+    </div>
+
+    <div class="port-branch" th:if="${p.gitBranch != null}">
+        <span class="branch-label">⎇</span>
+        <span class="branch-value" th:text="${p.gitBranch}"></span>
+    </div>
+
+    <div class="port-dirs" th:if="${p.detectedWorkingDir != null or p.savedWorkingDir != null}">
+        <div th:if="${p.detectedWorkingDir != null}">
+            <span class="dir-label" th:text="#{ports.dir.detected}">Dir rilevata:</span>
+            <span class="dir-value" th:text="${p.detectedWorkingDir}"></span>
+        </div>
+        <div th:if="${p.savedWorkingDir != null}">
+            <span class="dir-label" th:text="#{ports.dir.saved}">Dir salvata:</span>
+            <span class="dir-value" th:text="${p.savedWorkingDir}"></span>
+        </div>
+    </div>
+
+    <div class="port-actions">
+        <th:block th:unless="${p.dockerManaged}">
+            <button type="button"
+                    th:class="${p.up} ? 'btn-restart small-btn btn-reconnect' : 'btn-start small-btn'"
+                    th:attr="data-name=${p.sourceName}"
+                    th:text="${p.up} ? #{ports.btn.restart} : #{ports.btn.start}">
+            </button>
+            <button type="button" class="btn-kill small-btn btn-danger"
+                    th:attr="data-name=${p.sourceName}"
+                    th:disabled="${!p.up}"
+                    th:classappend="${!p.up} ? ' disabled'"
+                    th:text="#{ports.btn.stop}">
+                Termina
+            </button>
+            <button type="button" class="btn-config small-btn btn-secondary"
+                    th:attr="data-name=${p.sourceName}"
+                    th:text="#{ports.btn.config}">
+                Configura
+            </button>
+        </th:block>
+        <a th:href="@{/ports/{name}/log(name=${p.sourceName})}" class="small-btn btn-log"
+           target="_blank" rel="noopener" th:text="#{ports.btn.log}">
+            Log
+        </a>
+        <button type="button" class="btn-terminal small-btn btn-secondary"
+                th:attr="data-name=${p.sourceName}"
+                th:title="#{ports.btn.terminal}"
+                th:text="#{ports.btn.terminal}">
+            Terminale
+        </button>
+        <th:block th:unless="${p.sourceName == 'mcp-forge'}">
+            <button type="button" class="btn-remove small-btn btn-danger"
+                    th:attr="data-name=${p.sourceName}"
+                    th:text="#{ports.btn.remove}">
+                Remove
+            </button>
+        </th:block>
+        <span class="action-result" style="display:none"></span>
+    </div>
+
+    <!-- Pannello configurazione (nascosto di default) -->
+    <div class="config-panel" style="display:none" th:id="${'config-' + p.sourceName}">
+        <div class="config-row">
+            <label th:text="#{ports.label.startCommand}">Comando di avvio</label>
+            <input type="text" class="config-input cmd-input"
+                   th:value="${p.startCommand}"
+                   th:placeholder="#{ports.ph.startCommand}">
+        </div>
+        <div class="config-row">
+            <label th:text="#{ports.label.workingDir}">Directory di lavoro</label>
+            <div class="input-browse">
+                <input type="text" class="config-input dir-input"
+                       th:value="${!#strings.isEmpty(p.savedWorkingDir)} ? ${p.savedWorkingDir} : ${p.detectedWorkingDir}"
+                       th:placeholder="#{ports.ph.workingDir}">
+                <button type="button" class="small-btn btn-secondary btn-browse-dir" data-target-class="dir-input" title="Sfoglia">📁</button>
+            </div>
+        </div>
+        <div class="config-row">
+            <label th:text="#{ports.label.jdkVersion}">JDK version</label>
+            <input type="text" class="config-input jdk-input"
+                   th:value="${!#strings.isEmpty(p.jdkVersion)} ? ${p.jdkVersion} : '21'"
+                   placeholder="21">
+        </div>
+        <div class="config-row">
+            <label th:utext="#{ports.label.envVars.hint}">Variabili d'ambiente</label>
+            <input type="text" class="config-input env-input"
+                   th:value="${p.envVars}"
+                   th:placeholder="#{ports.ph.envVars}">
+        </div>
+        <div class="config-actions">
+            <button type="button" class="btn-save-config small-btn"
+                    th:attr="data-name=${p.sourceName}"
+                    th:text="#{ports.btn.save}">Salva</button>
+            <button type="button" class="btn-cancel-config small-btn btn-secondary"
+                    th:text="#{ports.btn.cancel}">Annulla</button>
+        </div>
+    </div>
+
+</div>
+
+</div><!-- /port-cards-container -->
+
+<th:block th:replace="~{fragments/layout :: confirmModal}"></th:block>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/ports.js}"></script>
+</body>
+</html>

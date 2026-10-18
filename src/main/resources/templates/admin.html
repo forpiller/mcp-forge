@@ -1,103 +1,266 @@
 <!DOCTYPE html>
-<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>mcp-forge</title>
     <th:block th:replace="~{fragments/layout :: styles}"></th:block>
-    <style>
-        label { display: block; font-size: 13px; font-weight: 600; margin-top: 12px; margin-bottom: 4px; color: var(--text-muted); }
-        input[type=text], select {
-            width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
-            background: var(--input-bg); color: var(--text); font-size: 14px;
-        }
-        input[type=text]::placeholder { color: #5a6072; }
-        input[type=text]:focus, select:focus { outline: none; border-color: var(--accent); }
-        .error-text { color: var(--error-text); font-size: 12px; margin-top: 2px; }
-        .source-group { margin-bottom: 12px; border: 1px solid var(--border); background: var(--card-bg); border-radius: 10px; padding: 4px 16px; }
-        .source-group summary { cursor: pointer; font-weight: 700; font-size: 16px; padding: 12px 0; list-style: none; color: var(--text); }
-        .source-group summary::-webkit-details-marker { display: none; }
-        .source-group summary::before { content: "▶"; display: inline-block; margin-right: 8px; font-size: 12px; color: var(--accent); transition: transform 0.15s; }
-        .source-group[open] summary::before { transform: rotate(90deg); }
-        .source-group .tool:last-child { margin-bottom: 16px; }
-        .tool { padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--input-bg); margin-bottom: 6px; border-radius: 0 6px 6px 0; }
-        .tool .name { font-family: monospace; font-weight: 600; color: var(--text); }
-        .tool .method { color: var(--text-muted); font-size: 13px; }
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center; gap: 12px;
-            border: 1px solid var(--border); background: var(--card-bg); border-radius: 8px;
-            padding: 10px 16px; margin-bottom: 8px;
-        }
-        .history-item .name { font-weight: 700; }
-        .history-item .url { color: var(--text-muted); font-size: 13px; font-family: monospace; display: block; }
-        .history-item form { margin: 0; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
 </head>
 <body>
 
 <th:block th:replace="~{fragments/layout :: topbar('home')}"></th:block>
+<th:block th:replace="~{fragments/layout :: confirmModal}"></th:block>
 
 <div class="alert success" th:if="${successMessage}" th:text="${successMessage}"></div>
 <div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
 
-<div class="card">
-    <h2>Registra una nuova fonte</h2>
+<div class="source-tabs">
+    <button type="button" class="active" data-tab="manuale" onclick="mcpForgeSwitchSourceTab('manuale')" th:text="#{admin.tab.manual}">Manual</button>
+    <button type="button" data-tab="eureka" onclick="mcpForgeSwitchSourceTab('eureka')">Eureka</button>
+    <button type="button" data-tab="staging" onclick="mcpForgeSwitchSourceTab('staging')">Staging</button>
+</div>
+
+<div class="card source-panel active" id="tab-manuale">
+    <h2 th:text="#{admin.form.title}">Register a new source</h2>
     <form th:action="@{/register}" th:object="${form}" method="post">
-        <label for="name">Nome fonte</label>
-        <input type="text" id="name" th:field="*{name}" placeholder="es. petstore">
+        <label for="name" th:text="#{admin.form.label.name}">Source name</label>
+        <input type="text" id="name" th:field="*{name}" th:placeholder="#{admin.form.ph.name}">
         <div class="error-text" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
 
-        <label for="openApiUrl">URL spec OpenAPI</label>
-        <input type="text" id="openApiUrl" th:field="*{openApiUrl}" placeholder="https://.../openapi.json">
-        <div class="error-text" th:if="${#fields.hasErrors('openApiUrl')}" th:errors="*{openApiUrl}"></div>
-
-        <label for="baseUrl">Base URL dell'API</label>
-        <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://api.esempio.it">
+        <label for="baseUrl" th:text="#{admin.form.label.baseUrl}">Service URL</label>
+        <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://api.esempio.it"
+               oninput="mcpForgeOnBaseUrlChange(this)">
         <div class="error-text" th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}"></div>
 
-        <label for="authHeaderName">Header di autenticazione (opzionale)</label>
-        <select id="authHeaderName" th:field="*{authHeaderName}">
-            <option value="">Nessuno</option>
-            <option value="Authorization">Authorization (Bearer / Basic)</option>
-            <option value="X-API-Key">X-API-Key</option>
-            <option value="Api-Key">Api-Key</option>
-            <option value="X-Auth-Token">X-Auth-Token</option>
-        </select>
+        <label for="openApiUrl" th:text="#{admin.form.label.openApiUrl}">OpenAPI spec URL</label>
+        <div class="probe-row">
+            <input type="text" id="openApiUrl" th:field="*{openApiUrl}" placeholder="https://.../openapi.json">
+            <button type="button" id="probeBtn" class="small-btn probe-btn" disabled
+                    onclick="mcpForgeProbeOpenApi()" th:text="#{admin.form.btn.probe}">🔍 Find spec</button>
+        </div>
+        <div id="probeStatus" class="probe-status"></div>
+        <div class="error-text" th:if="${#fields.hasErrors('openApiUrl')}" th:errors="*{openApiUrl}"></div>
 
-        <label for="authHeaderValue">Valore header (opzionale)</label>
-        <input type="text" id="authHeaderValue" th:field="*{authHeaderValue}" placeholder="Bearer ...">
+        <label th:text="#{admin.form.label.auth}">Authentication</label>
+        <div class="auth-mode-choice">
+            <label><input type="radio" name="authMode" value="none" checked> <span th:text="#{admin.form.auth.none}">None</span></label>
+            <label><input type="radio" name="authMode" value="static"> <span th:text="#{admin.form.auth.static}">Static header</span></label>
+            <label><input type="radio" name="authMode" value="oauth2"> <span th:text="#{admin.form.auth.oauth2}">OAuth2 (auto login)</span></label>
+            <label><input type="radio" name="authMode" value="jsonlogin"> <span th:text="#{admin.form.auth.jsonlogin}">JSON Login (username + password)</span></label>
+        </div>
 
-        <button type="submit">Registra e genera tool</button>
+        <div class="auth-fields" id="jsonLoginFields" style="display:none">
+            <label for="jsonLoginUrl" th:text="#{admin.form.label.loginUrl}">Login URL</label>
+            <input type="text" id="jsonLoginUrl" th:field="*{jsonLoginUrl}" placeholder="https://…/api/login">
+
+            <label for="jsonLoginUsername" th:text="#{admin.form.label.username}">Username</label>
+            <input type="text" id="jsonLoginUsername" th:field="*{jsonLoginUsername}">
+
+            <label for="jsonLoginPassword" th:text="#{admin.form.label.password}">Password</label>
+            <div class="pw-wrap">
+                <input type="password" id="jsonLoginPassword" th:field="*{jsonLoginPassword}" autocomplete="new-password">
+                <button type="button" class="pw-toggle" onclick="mcpForgeTogglePw(this)" th:title="#{storico.btn.show}">👁</button>
+            </div>
+
+            <label for="jsonLoginTokenPath" th:text="#{admin.form.label.tokenPath}">Token field in response</label>
+            <input type="text" id="jsonLoginTokenPath" th:field="*{jsonLoginTokenPath}" placeholder="access_token">
+            <p class="field-hint" th:text="#{admin.form.hint.tokenPath}">Dot-notation path in JSON response. Default: access_token</p>
+        </div>
+
+        <div class="auth-fields" id="staticFields" style="display:none">
+            <label for="authHeaderName" th:text="#{admin.form.label.headerName}">Header name</label>
+            <select id="authHeaderName" th:field="*{authHeaderName}">
+                <option value="" th:text="#{admin.form.select.headerNone}">None</option>
+                <option value="Authorization">Authorization (Bearer / Basic)</option>
+                <option value="X-API-Key">X-API-Key</option>
+                <option value="Api-Key">Api-Key</option>
+                <option value="X-Auth-Token">X-Auth-Token</option>
+            </select>
+
+            <label for="authHeaderValue" th:text="#{admin.form.label.headerValue}">Header value</label>
+            <input type="text" id="authHeaderValue" th:field="*{authHeaderValue}" placeholder="Bearer ...">
+        </div>
+
+        <div class="auth-fields" id="oauth2Fields" style="display:none">
+            <p class="field-hint" th:text="#{admin.form.hint.oauth2}">Login grant_type=password: mcp-forge calls this endpoint itself and auto-renews the token when it expires.</p>
+            <label for="oauth2TokenUrl" th:text="#{admin.form.label.tokenUrl}">Token URL</label>
+            <input type="text" id="oauth2TokenUrl" th:field="*{oauth2TokenUrl}" placeholder="http://localhost:9999/oauth/token">
+
+            <label for="oauth2ClientId" th:text="#{admin.form.label.clientId}">Client ID</label>
+            <input type="text" id="oauth2ClientId" th:field="*{oauth2ClientId}" placeholder="gatewayclient">
+
+            <label for="oauth2ClientSecret" th:text="#{admin.form.label.clientSecret}">Client secret</label>
+            <input type="text" id="oauth2ClientSecret" th:field="*{oauth2ClientSecret}" placeholder="123456">
+
+            <label for="oauth2Username" th:text="#{admin.form.label.username}">Username</label>
+            <input type="text" id="oauth2Username" th:field="*{oauth2Username}" placeholder="superuser">
+
+            <label for="oauth2Password" th:text="#{admin.form.label.password}">Password</label>
+            <div class="pw-wrap">
+                <input type="password" id="oauth2Password" th:field="*{oauth2Password}" placeholder="123456" autocomplete="new-password">
+                <button type="button" class="pw-toggle" onclick="mcpForgeTogglePw(this)" th:title="#{storico.btn.show}">👁</button>
+            </div>
+        </div>
+
+        <button type="submit" th:text="#{admin.form.btn.submit}">Register and generate tools</button>
     </form>
 </div>
 
+<div class="card source-panel" id="tab-staging">
+    <h2 th:text="#{admin.staging.title}">Register staging environment</h2>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;" th:text="#{admin.staging.desc}">Enter the microservice base URL and credentials.</p>
+    <form action="/register-staging" method="post">
+        <label for="stagingName">
+            <span th:text="#{admin.staging.label.name}">Source name</span>
+            <span style="font-weight:400;color:var(--text-muted)" th:text="#{admin.staging.label.name.hint}"> (optional — auto-derived from URL)</span>
+        </label>
+        <input type="text" id="stagingName" name="stagingName" placeholder="es. questions-staging">
+
+        <label for="stagingBaseUrl" th:text="#{admin.staging.label.baseUrl}">Base URL</label>
+        <input type="text" id="stagingBaseUrl" name="stagingBaseUrl" placeholder="https://app-staging.concorsismart.it">
+
+        <label for="stagingOpenApiUrl">
+            <span th:text="#{admin.staging.label.openApiUrl}">OpenAPI spec URL</span>
+            <span style="font-weight:400;color:var(--text-muted)" th:text="#{admin.staging.label.openApiUrl.hint}"> (optional — default: /v3/api-docs)</span>
+        </label>
+        <input type="text" id="stagingOpenApiUrl" name="stagingOpenApiUrl" placeholder="/v3/api-docs">
+
+        <label for="stagingLoginUrl">
+            <span th:text="#{admin.staging.label.loginUrl}">Login URL</span>
+            <span style="font-weight:400;color:var(--text-muted)" th:utext="#{admin.staging.label.loginUrl.hint}"> (optional — default: &lt;base&gt;/api/login)</span>
+        </label>
+        <input type="text" id="stagingLoginUrl" name="stagingLoginUrl" placeholder="https://app-staging.concorsismart.it/api/login">
+        <p class="field-hint" th:text="#{admin.staging.hint.loginUrl}">Useful when the API path prefix differs from the login path.</p>
+
+        <label for="stagingUsername" th:text="#{admin.staging.label.username}">Username</label>
+        <input type="text" id="stagingUsername" name="stagingUsername">
+
+        <label for="stagingPassword" th:text="#{admin.staging.label.password}">Password</label>
+        <div class="pw-wrap">
+            <input type="password" id="stagingPassword" name="stagingPassword" autocomplete="new-password">
+            <button type="button" class="pw-toggle" onclick="mcpForgeTogglePw(this)" th:title="#{storico.btn.show}">👁</button>
+        </div>
+
+        <button type="submit" th:text="#{admin.staging.btn.submit}">Register staging</button>
+    </form>
+</div>
+
+<div class="card source-panel" id="tab-eureka">
+    <h2 th:text="#{admin.eureka.title}">Applications registered on Eureka</h2>
+    <div class="eureka-toolbar">
+        <button type="button" id="eurekaSearchBtn" onclick="mcpForgeSearchEureka()" th:text="#{admin.eureka.btn.search}">Search applications</button>
+        <p class="eureka-hint" th:text="#{admin.eureka.hint}">Queries the local Eureka registry and suggests names and URLs ready to use.</p>
+    </div>
+    <div id="eurekaResults"></div>
+</div>
+
+<form th:if="${duplicatePendingKey}" th:action="@{/replay-pending}" method="post" id="duplicateReplayForm" style="display:none">
+    <input type="hidden" name="pendingKey" th:value="${duplicatePendingKey}">
+</form>
+<script th:if="${duplicatePendingKey}" th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        var isActive        = /*[[${duplicateExistingIsActive}]]*/ null;
+        if (isActive === null) isActive = true;
+        var existingName    = /*[[${duplicateExistingName}]]*/ '';
+        var existingBase    = /*[[${duplicateExistingBaseUrl}]]*/ '';
+        var existingOpenApi = /*[[${duplicateExistingOpenApiUrl}]]*/ '';
+        var newName         = /*[[${duplicateNewName}]]*/ '';
+        var newBase         = /*[[${duplicateNewBaseUrl}]]*/ '';
+        var newOpenApi      = /*[[${duplicateNewOpenApiUrl}]]*/ '';
+
+        var i18n = {
+            title:       /*[[#{admin.duplicate.title}]]*/ 'Source already exists',
+            intro:       /*[[#{admin.duplicate.intro}]]*/ 'A source with the same name, spec or base URL is already registered.',
+            active:      /*[[#{admin.duplicate.active}]]*/ '⚡ This source is currently <strong>active</strong> — replacing it will reload the spec.',
+            inactive:    /*[[#{admin.duplicate.inactive}]]*/ '⚠️ This source exists but is <strong>disconnected</strong> — confirming will reconnect it.',
+            replace:     /*[[#{admin.duplicate.replace}]]*/ 'Replace',
+            reconnect:   /*[[#{admin.duplicate.reconnect}]]*/ 'Reconnect',
+            colField:    /*[[#{admin.duplicate.col.field}]]*/ 'Field',
+            colCurrent:  /*[[#{admin.duplicate.col.current}]]*/ 'Current value',
+            colNew:      /*[[#{admin.duplicate.col.new}]]*/ 'New value'
+        };
+
+        function esc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function row(label, before, after) {
+            var changed = before !== after;
+            var style = changed ? 'font-weight:600;color:#f59e0b;' : 'color:#9ca3af;';
+            return '<tr style="' + style + '">'
+                 + '<td style="padding:4px 10px 4px 0;white-space:nowrap">' + esc(label) + '</td>'
+                 + '<td style="padding:4px 10px;white-space:nowrap;text-decoration:line-through;opacity:.6">' + (esc(before) || '—') + '</td>'
+                 + '<td style="padding:4px 0;white-space:nowrap">' + (esc(after) || '—') + '</td>'
+                 + '</tr>';
+        }
+
+        var table = '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px">'
+            + '<thead><tr style="color:#9ca3af;font-size:.75rem">'
+            + '<th style="text-align:left;padding:0 10px 6px 0">' + i18n.colField + '</th>'
+            + '<th style="text-align:left;padding:0 10px 6px 0">' + i18n.colCurrent + '</th>'
+            + '<th style="text-align:left;padding:0 0 6px 0">' + i18n.colNew + '</th>'
+            + '</tr></thead><tbody>'
+            + row('Nome', existingName, newName)
+            + row('Base URL', existingBase, newBase)
+            + row('Spec OpenAPI', existingOpenApi, newOpenApi)
+            + '</tbody></table>';
+
+        var statusNote = isActive
+            ? '<p style="font-size:.8rem;color:#10b981;margin:10px 0 0">' + i18n.active + '</p>'
+            : '<p style="font-size:.8rem;color:#f59e0b;margin:10px 0 0">' + i18n.inactive + '</p>';
+
+        var confirmLabel = isActive ? i18n.replace : i18n.reconnect;
+
+        mcpForgeConfirm({
+            title: i18n.title,
+            htmlMessage: i18n.intro + statusNote + table,
+            confirmLabel: confirmLabel,
+            onConfirm: function () {
+                document.getElementById('duplicateReplayForm').submit();
+            }
+        });
+    });
+</script>
+
 <div th:if="${lastRegistration != null}">
-    <h2>Ultima registrazione</h2>
+    <h2 th:text="#{admin.lastReg.title}">Last registration</h2>
     <div class="history-item">
         <div>
             <span class="name" th:text="${lastRegistration.name}"></span>
             <span class="url" th:text="${lastRegistration.openApiUrl}"></span>
         </div>
-        <form th:action="@{/replay}" method="post">
-            <input type="hidden" name="name" th:value="${lastRegistration.name}">
-            <input type="hidden" name="openApiUrl" th:value="${lastRegistration.openApiUrl}">
-            <input type="hidden" name="baseUrl" th:value="${lastRegistration.baseUrl}">
-            <input type="hidden" name="authHeaderName" th:value="${lastRegistration.authHeaderName}">
-            <input type="hidden" name="authHeaderValue" th:value="${lastRegistration.authHeaderValue}">
-            <button type="submit" class="small-btn">Reinserisci</button>
+        <form th:action="@{/fonti/{id}/reinserisci(id=${lastRegistration.id})}" method="post">
+            <button type="submit" class="small-btn" th:text="#{admin.lastReg.btn.reinsert}">Re-register</button>
         </form>
     </div>
 </div>
 
-<h2>Fonti attive ora</h2>
-<p class="empty" th:if="${sourceGroups.isEmpty()}">Nessuna fonte attiva — registra o reinserisci una fonte sopra.</p>
+<h2>
+    <span th:text="#{admin.connections.title}">MCP Connections</span>
+    <span class="connections-count" th:if="${!sourceGroups.isEmpty()}" th:text="${sourceGroups.size()}"></span>
+</h2>
+<p class="empty" th:if="${sourceGroups.isEmpty()}" th:text="#{admin.connections.empty}">No active sources — register or re-register a source above.</p>
 
 <details class="source-group" th:each="entry : ${sourceGroups}">
-    <summary th:text="${entry.key} + ' (' + ${entry.value.size()} + ' tool)'"></summary>
+    <summary>
+        <span class="summary-label" th:text="${entry.key} + ' (' + ${entry.value.size()} + ' tool)'"></span>
+        <span style="display:flex;align-items:center;gap:10px;">
+            <button type="button" class="btn-danger small-btn disconnect-btn"
+                    th:data-name="${entry.key}"
+                    th:data-disconnect-url="@{/sources/{n}/disconnect-ajax(n=${entry.key})}"
+                    th:data-reconnect-url="@{/sources/{n}/reconnect(n=${entry.key})}"
+                    onclick="mcpForgeToggleConnection(this)"
+                    th:text="#{admin.btn.disconnect}">Disconnect</button>
+            <span class="status-dot" th:classappend="${sourceStatus.get(entry.key)} ? 'status-ok' : 'status-error'"
+                  th:title="${sourceStatus.get(entry.key)} ? #{admin.status.ok.title} : #{admin.status.error.title}"></span>
+        </span>
+    </summary>
     <div class="tool" th:each="tool : ${entry.value}">
         <span class="name" th:text="${tool.fullToolName()}"></span><br>
         <span class="method" th:text="${tool.operation().httpMethod()} + ' ' + ${tool.operation().path()}"></span>
     </div>
 </details>
 
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/admin.js}"></script>
 </body>
 </html>

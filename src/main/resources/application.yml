@@ -5,6 +5,11 @@ spring:
   application:
     name: mcp-forge
 
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
   datasource:
     url: jdbc:h2:file:./data/mcp-forge;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
@@ -40,6 +45,8 @@ spring:
           num-ctx: 4096
 
 mcp-forge:
+  eureka:
+    url: http://localhost:8761/eureka
   ratelimit:
     capacity: 10
     refill-tokens: 10

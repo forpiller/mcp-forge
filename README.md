@@ -1,5 +1,29 @@
 # mcp-forge
 
+## Cos'è e perché esiste
+
+Hai un'applicazione con decine di endpoint REST. Normalmente, per interrogarla da un'AI
+come Claude Code, dovresti scrivere query SQL dirette al database o chiamare manualmente
+gli endpoint con `curl`. È lento, fragile, e bypassa tutta la logica applicativa:
+permessi, validazioni, business logic.
+
+mcp-forge risolve questo problema: legge la specifica OpenAPI della tua applicazione e
+genera automaticamente dei **tool MCP** — uno per ogni endpoint. Claude Code può così
+chiamare direttamente `POST /api/orders`, `GET /api/users` e qualsiasi altro endpoint
+come se fossero comandi nativi, rispettando autenticazione e permessi reali.
+
+Durante lo sviluppo puoi testare gli endpoint direttamente dalla chat, senza aprire
+Postman. I tool si aggiornano automaticamente quando aggiungi nuovi endpoint — nessuna
+configurazione manuale.
+
+> mcp-forge trasforma le API della tua applicazione in strumenti che Claude Code può
+> usare direttamente, come se l'AI avesse un client REST integrato che capisce il tuo
+> progetto.
+
+---
+
+## Come funziona tecnicamente
+
 Genera automaticamente un server **MCP (Model Context Protocol)** a partire dallo spec
 **OpenAPI** di un'API REST esistente. Ogni operazione dello spec diventa un tool MCP
 invocabile da qualsiasi client MCP (Claude Desktop, MCP Inspector, ecc.), senza scrivere

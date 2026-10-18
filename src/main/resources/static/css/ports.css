@@ -1,0 +1,240 @@
+.port-card {
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+
+.port-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.port-info {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.port-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+}
+
+.port-number {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.port-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.badge-up {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.badge-down {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
+
+.port-pid {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.port-url {
+    margin-bottom: 10px;
+}
+
+.port-url a {
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: monospace;
+}
+
+.port-url a:hover { text-decoration: underline; }
+
+.port-branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.branch-label {
+    color: #a78bfa;
+    font-size: 13px;
+}
+
+.branch-value {
+    color: #c4b5fd;
+    font-weight: 600;
+    background: rgba(167, 139, 250, 0.1);
+    border: 1px solid rgba(167, 139, 250, 0.25);
+    border-radius: 4px;
+    padding: 1px 7px;
+}
+
+.port-dirs {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dir-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 6px;
+}
+
+.dir-value {
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text);
+}
+
+.port-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-result {
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+.action-result.ok {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.action-result.err {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
+
+button.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.config-panel {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.config-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.config-row label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.config-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: monospace;
+    width: 100%;
+}
+
+.config-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.config-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.port-card.port-card--down {
+    background: color-mix(in srgb, var(--card-bg) 60%, #000 40%);
+    border-color: color-mix(in srgb, var(--border) 50%, transparent 50%);
+    opacity: 0.7;
+}
+
+.port-card.port-card--down .port-name,
+.port-card.port-card--down .port-url a {
+    color: var(--text-muted);
+}
+
+.port-card.docker-card {
+    background: #1c2030;
+    border-color: #2e4060;
+}
+
+.docker-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #1a3050;
+    color: #4fa8e8;
+    letter-spacing: 0.3px;
+}
+
+.docker-note {
+    font-size: 12px;
+    color: #4fa8e8;
+    opacity: 0.75;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.input-browse {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.input-browse .config-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.input-browse .btn-browse-dir {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 14px;
+}

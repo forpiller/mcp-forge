@@ -2,11 +2,11 @@ package it.forpiller.mcpforge.mcp;
 
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
-import it.forpiller.mcpforge.audit.AuditLogService;
 import it.forpiller.mcpforge.ingest.OperationDescriptor;
 import it.forpiller.mcpforge.ingest.ParamDescriptor;
-import it.forpiller.mcpforge.ratelimit.RateLimiterService;
-import org.springframework.stereotype.Component;
+import it.forpiller.mcpforge.service.AuditLogService;
+import it.forpiller.mcpforge.service.RateLimiterService;
+import it.forpiller.mcpforge.web.dto.AuditLogRequest;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,12 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Trasforma un'operazione OpenAPI (già ingerita) in una specifica di tool
- * MCP pronta per essere registrata su {@link io.modelcontextprotocol.server.McpSyncServer},
- * con rate limiting e audit log applicati ad ogni invocazione.
- */
-@Component
 public class McpToolFactory {
 
     private static final Set<String> JSON_SCHEMA_TYPES = Set.of("integer", "number", "boolean", "array", "object");
@@ -28,8 +22,10 @@ public class McpToolFactory {
     private final RateLimiterService rateLimiterService;
     private final AuditLogService auditLogService;
 
-    public McpToolFactory(ApiInvoker apiInvoker, RateLimiterService rateLimiterService,
-                           AuditLogService auditLogService) {
+    public McpToolFactory(
+            ApiInvoker apiInvoker,
+            RateLimiterService rateLimiterService,
+            AuditLogService auditLogService) {
         this.apiInvoker = apiInvoker;
         this.rateLimiterService = rateLimiterService;
         this.auditLogService = auditLogService;
@@ -58,32 +54,31 @@ public class McpToolFactory {
                 .build();
     }
 
-    /**
-     * Logica condivisa tra il protocollo MCP e la chat locale (Ollama): rate
-     * limit, chiamata reale, audit log — un solo punto da cui passano tutte
-     * le invocazioni di tool, qualunque sia il client che le ha innescate.
-     */
     public ToolInvocationOutcome invokeWithGuards(RegisteredTool registeredTool, Map<String, Object> arguments) {
         String sourceName = registeredTool.source().name();
         String toolName = registeredTool.fullToolName();
 
         if (!rateLimiterService.tryConsume(sourceName, toolName)) {
-            auditLogService.record(sourceName, toolName, arguments, null, 0, false, "rate limit superato");
-            return new ToolInvocationOutcome(false, "Rate limit superato per '" + toolName + "'. Riprova più tardi.");
+            auditLogService.record(new AuditLogRequest(
+                    sourceName, toolName, arguments, null, 0, false, "rate limit superato"));
+            return new ToolInvocationOutcome(false,
+                    "Rate limit superato per '" + toolName + "'. Riprova più tardi.");
         }
 
         long start = System.currentTimeMillis();
         ApiCallResult result = apiInvoker.invoke(registeredTool, arguments);
         long durationMs = System.currentTimeMillis() - start;
 
-        auditLogService.record(sourceName, toolName, arguments, result.httpStatus(), durationMs,
-                result.success(), result.errorMessage());
+        auditLogService.record(new AuditLogRequest(
+                sourceName, toolName, arguments,
+                result.httpStatus(), durationMs, result.success(), result.errorMessage()));
 
         if (result.success()) {
             return new ToolInvocationOutcome(true, result.body() != null ? result.body() : "");
         }
 
-        return new ToolInvocationOutcome(false, "Errore chiamando '" + toolName + "': " + result.errorMessage());
+        return new ToolInvocationOutcome(false,
+                "Errore chiamando '" + toolName + "': " + result.errorMessage());
     }
 
     public String buildDescription(RegisteredTool registeredTool) {

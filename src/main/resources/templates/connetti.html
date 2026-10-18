@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'mcp-forge — ' + #{nav.connetti}">mcp-forge — Connect</title>
+    <th:block th:replace="~{fragments/layout :: styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/connetti.css}">
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: topbar('connetti')}"></th:block>
+
+<p class="subtitle" th:text="#{connetti.subtitle}">Ready-to-use commands (port already filled in) to connect your favorite AI to mcp-forge — copy and paste into the terminal or config file.</p>
+
+<div class="connect-tabs">
+    <button type="button" data-tab="claude-code"    onclick="mcpForgeConnectTab('claude-code')">Claude Code</button>
+    <button type="button" data-tab="claude-desktop" onclick="mcpForgeConnectTab('claude-desktop')">Claude Desktop</button>
+    <button type="button" data-tab="gemini"         onclick="mcpForgeConnectTab('gemini')">Gemini CLI</button>
+    <button type="button" data-tab="vscode"         onclick="mcpForgeConnectTab('vscode')">VS Code</button>
+    <button type="button" data-tab="cursor"         onclick="mcpForgeConnectTab('cursor')">Cursor</button>
+    <button type="button" data-tab="codex"          onclick="mcpForgeConnectTab('codex')">Open-Codex</button>
+</div>
+
+<!-- ── Claude Code ─────────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-claude-code">
+    <h2>Claude Code <span class="client-badge ok" th:text="#{connetti.tab.cc.badge}">recommended</span></h2>
+    <p>
+        Run this command from the terminal — it registers mcp-forge as an MCP server in your Claude profile.
+        Then open a <strong>new</strong> <code class="inline">claude</code> session
+        (the one already open won't see servers added at runtime):
+    </p>
+    <div class="code-box">
+        <code id="cmd-cc" th:text="${claudeCodeCommand}"></code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-cc', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.cc.step.allow}">Optional — auto-approve all mcp-forge tools without confirmation on every call</p>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 4px;">Requires <code class="inline">jq</code> (see below). Run once, modifies <code class="inline">~/.claude/settings.json</code>:</p>
+    <div class="code-box">
+        <code id="cmd-cc-allow" th:text="${claudeCodeAllowCommand}"></code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-cc-allow', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.cc.step.jq}">Install jq (if you don't have it)</p>
+    <div class="code-box">
+        <code id="cmd-jq">brew install jq</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-jq', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <div class="step-note">
+        After adding the server, start <code class="inline">claude</code> in any project directory.
+        Type <code class="inline">/mcp</code> to see the available tools — you should see all the tools
+        from active sources in mcp-forge.
+    </div>
+</div>
+
+<!-- ── Claude Desktop ─────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-claude-desktop">
+    <h2>Claude Desktop</h2>
+    <p>
+        Open the Claude Desktop config file:
+        <code class="inline">~/Library/Application Support/Claude/claude_desktop_config.json</code><br>
+        Add this block inside the <code class="inline">"mcpServers"</code> key, then <strong>restart the app</strong>:
+    </p>
+    <div class="code-box">
+        <pre id="cmd-cd" th:text="${desktopConfigSnippet}"></pre>
+        <button type="button" class="small-btn" onclick="copyText('cmd-cd', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.cd.step.empty}">File doesn't exist yet? Create it with this full structure</p>
+    <div class="code-box">
+        <pre id="cmd-cd-full">{
+  "mcpServers": {
+    <span th:text="${desktopConfigSnippet}" style="display:contents"></span>
+  }
+}</pre>
+        <button type="button" class="small-btn" onclick="copyFullDesktop(this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <div class="step-note">
+        After restarting, open Claude Desktop → Settings → Developer: you should see
+        <strong>mcp-forge</strong> with the tools listed. Start a conversation and ask
+        something that uses the registered APIs.
+    </div>
+</div>
+
+<!-- ── Gemini CLI ──────────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-gemini">
+    <h2>Gemini CLI</h2>
+    <p>
+        The official Google CLI (<code class="inline">gemini</code>) supports MCP servers via HTTP.
+        Edit (or create) <code class="inline">~/.gemini/settings.json</code> and add
+        the <code class="inline">mcpServers</code> section:
+    </p>
+    <div class="code-box">
+        <pre id="cmd-gemini" th:text="${geminiSettingsSnippet}"></pre>
+        <button type="button" class="small-btn" onclick="copyText('cmd-gemini', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.gemini.step.install}">Don't have Gemini CLI yet?</p>
+    <div class="code-box">
+        <code id="cmd-gemini-install">npm install -g @google/gemini-cli</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-gemini-install', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.gemini.step.run}">Start and verify</p>
+    <div class="code-box">
+        <code id="cmd-gemini-run">gemini</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-gemini-run', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <div class="step-note">
+        Gemini CLI automatically loads <code class="inline">~/.gemini/settings.json</code> on startup.
+        Type <code class="inline">/tools</code> in the session to see available MCP tools.
+        The <code class="inline">timeout</code> field is in milliseconds — increase it if the APIs are slow.
+    </div>
+</div>
+
+<!-- ── VS Code ─────────────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-vscode">
+    <h2>VS Code <span class="client-badge" th:text="#{connetti.tab.vscode.badge}">GitHub Copilot / Continue</span></h2>
+    <p>
+        Create <code class="inline">.vscode/mcp.json</code> in your project root.
+        VS Code with <strong>GitHub Copilot</strong> (recent version) or the <strong>Continue</strong> extension
+        detects it automatically and makes the tools available in agent mode:
+    </p>
+    <div class="code-box">
+        <pre id="cmd-vscode" th:text="${vscodeMcpSnippet}"></pre>
+        <button type="button" class="small-btn" onclick="copyText('cmd-vscode', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.vscode.step.global}">Global configuration (all projects)</p>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 4px;">
+        Open <code class="inline">Ctrl+Shift+P → Open User Settings (JSON)</code> and add
+        the same structure under the <code class="inline">"mcp.servers"</code> key.
+    </p>
+
+    <p class="step-label" th:text="#{connetti.tab.vscode.step.extensions}">Install required extensions (if you don't have them)</p>
+    <div class="code-box">
+        <code id="cmd-vscode-ext">code --install-extension GitHub.copilot</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-vscode-ext', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <div class="step-note">
+        Reload the VS Code window (<code class="inline">Ctrl+Shift+P → Reload Window</code>) after
+        creating the file. In Copilot Chat's agent mode, mcp-forge tools will appear
+        automatically as available tools.
+    </div>
+</div>
+
+<!-- ── Cursor ──────────────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-cursor">
+    <h2>Cursor</h2>
+    <p>
+        Cursor supports MCP servers natively. For a <strong>global</strong> configuration
+        (valid in all projects) create or edit <code class="inline">~/.cursor/mcp.json</code>.
+        For a <strong>project-local</strong> configuration use <code class="inline">.cursor/mcp.json</code>
+        in the repo root:
+    </p>
+    <div class="code-box">
+        <pre id="cmd-cursor" th:text="${cursorMcpSnippet}"></pre>
+        <button type="button" class="small-btn" onclick="copyText('cmd-cursor', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.cursor.step.activate}">Enable tools in agent mode</p>
+    <p style="font-size:13px;color:var(--text-muted);margin:0;">
+        After saving the file, restart Cursor. Open the Composer with
+        <code class="inline">Ctrl+I</code>, switch to <strong>Agent</strong> (not normal Chat)
+        and click the tools icon: you'll see the mcp-forge tools listed and selectable.
+    </p>
+
+    <div class="step-note">
+        Cursor uses the <code class="inline">"url"</code> key for HTTP MCP servers —
+        no need to specify transport because it auto-detects from the URL.
+        If you have multiple MCP servers, add them all under <code class="inline">"mcpServers"</code>
+        as separate keys.
+    </div>
+</div>
+
+<!-- ── Open-Codex ─────────────────────────────────────────────────────── -->
+<div class="card connect-panel" id="tab-codex">
+    <h2>Open-Codex <span class="client-badge" th:text="#{connetti.tab.codex.badge}">OpenAI CLI</span></h2>
+    <p>
+        <a href="https://github.com/openai/codex" target="_blank" rel="noopener" style="color:var(--accent)">OpenAI Codex CLI</a>
+        is OpenAI's open-source command-line interface for code agents.
+        Supports MCP servers via TOML. Add this block in
+        <code class="inline">~/.codex/config.toml</code> (create it if it doesn't exist):
+    </p>
+    <div class="code-box">
+        <pre id="cmd-codex" th:text="${codexConfigSnippet}"></pre>
+        <button type="button" class="small-btn" onclick="copyText('cmd-codex', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.codex.step.install}">Don't have Codex CLI yet?</p>
+    <div class="code-box">
+        <code id="cmd-codex-install">npm install -g @openai/codex</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-codex-install', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <p class="step-label" th:text="#{connetti.tab.codex.step.apikey}">Set the API key and start</p>
+    <div class="code-box">
+        <code id="cmd-codex-run">export OPENAI_API_KEY="sk-..." &amp;&amp; codex</code>
+        <button type="button" class="small-btn" onclick="copyText('cmd-codex-run', this)" th:text="#{connetti.btn.copy}">Copy</button>
+    </div>
+
+    <div class="step-note">
+        Codex CLI loads MCP servers defined in TOML at session startup.
+        You can have multiple <code class="inline">[[mcp_servers]]</code> blocks for different servers.
+        Type your request in natural language — Codex will autonomously decide which tools to call.
+    </div>
+</div>
+
+<div id="connect-data" th:attr="data-desktop-snippet=${desktopConfigSnippet}" style="display:none"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/connetti.js}"></script>
+</body>
+</html>

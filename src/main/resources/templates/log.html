@@ -1,57 +1,49 @@
 <!DOCTYPE html>
-<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>mcp-forge — Log</title>
+    <title th:text="'mcp-forge — ' + #{auditlog.title}">mcp-forge — Audit log</title>
     <th:block th:replace="~{fragments/layout :: styles}"></th:block>
-    <style>
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-        td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-        tr:hover td { background: var(--input-bg); }
-        td.mono { font-family: monospace; }
-        .badge-ok { color: var(--success-text); font-weight: 600; }
-        .badge-err { color: var(--error-text); }
-        .log-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-        .log-controls .size-form { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
-        .log-controls select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 13px; }
-        .total-count { font-size: 13px; color: var(--text-muted); }
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; font-size: 13px; }
-        .pagination a { color: var(--accent); text-decoration: none; font-weight: 600; }
-        .pagination a:hover { text-decoration: underline; }
-        .pagination .disabled { color: var(--text-muted); opacity: 0.4; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/log.css}">
+    <style>.badge-err-clickable { cursor: pointer; }</style>
 </head>
 <body>
 
 <th:block th:replace="~{fragments/layout :: topbar('log')}"></th:block>
 
-<h2>Audit log</h2>
+<h2 th:text="#{auditlog.title}">Audit log</h2>
 
 <div class="log-controls" th:unless="${entries.isEmpty()}">
-    <span class="total-count" th:text="${entries.totalElements} + ' chiamate totali'"></span>
+    <span class="total-count"><span th:text="${entries.totalElements}"></span> <span th:text="#{auditlog.controls.total.suffix}">total calls</span></span>
     <form method="get" th:action="@{/log}" class="size-form">
-        <label for="size">Righe per pagina</label>
+        <label for="source" th:text="#{auditlog.controls.source.label}">Source</label>
+        <select id="source" name="source" onchange="this.form.submit()">
+            <option value="" th:selected="${selectedSource == null or selectedSource.isBlank()}" th:text="#{auditlog.controls.source.all}">All</option>
+            <option th:each="s : ${sourceNames}" th:value="${s}" th:text="${s}"
+                    th:selected="${s == selectedSource}"></option>
+        </select>
+        <label for="size" th:text="#{auditlog.controls.rows.label}">Rows</label>
         <select id="size" name="size" onchange="this.form.submit()">
             <option value="10" th:selected="${size == 10}">10</option>
             <option value="20" th:selected="${size == 20}">20</option>
             <option value="50" th:selected="${size == 50}">50</option>
             <option value="100" th:selected="${size == 100}">100</option>
         </select>
+        <input type="hidden" name="page" value="0">
     </form>
 </div>
 
-<p class="empty" th:if="${entries.isEmpty()}">Nessuna chiamata registrata ancora.</p>
+<p class="empty" th:if="${entries.isEmpty()}" th:text="#{auditlog.empty}">No calls recorded yet.</p>
 
 <table th:unless="${entries.isEmpty()}">
     <thead>
     <tr>
-        <th>Quando</th>
-        <th>Fonte</th>
-        <th>Tool</th>
-        <th>Stato</th>
-        <th>Durata</th>
-        <th>Esito</th>
+        <th th:text="#{auditlog.col.when}">When</th>
+        <th th:text="#{auditlog.col.source}">Source</th>
+        <th th:text="#{auditlog.col.tool}">Tool</th>
+        <th th:text="#{auditlog.col.status}">Status</th>
+        <th th:text="#{auditlog.col.duration}">Duration</th>
+        <th th:text="#{auditlog.col.result}">Result</th>
     </tr>
     </thead>
     <tbody>
@@ -63,21 +55,55 @@
         <td th:text="${entry.durationMs} + ' ms'"></td>
         <td>
             <span class="badge-ok" th:if="${entry.success}">OK</span>
-            <span class="badge-err" th:unless="${entry.success}" th:text="${entry.errorMessage}"></span>
+            <span class="badge-err badge-err-clickable" th:unless="${entry.success}"
+                  th:data-full="${entry.errorMessage}"
+                  th:text="${#strings.length(entry.errorMessage) > 60 ? #strings.substring(entry.errorMessage, 0, 60) + '…' : entry.errorMessage}"></span>
         </td>
     </tr>
     </tbody>
 </table>
 
 <div class="pagination" th:if="${entries.totalPages > 1}">
-    <a th:if="${entries.hasPrevious()}" th:href="@{/log(page=${entries.number - 1}, size=${size})}">&laquo; Precedente</a>
-    <span th:unless="${entries.hasPrevious()}" class="disabled">&laquo; Precedente</span>
+    <a th:if="${entries.hasPrevious()}"
+       th:href="@{/log(page=${entries.number - 1}, size=${size}, source=${selectedSource})}" th:text="#{auditlog.pagination.prev}">« Previous</a>
+    <span th:unless="${entries.hasPrevious()}" class="disabled" th:text="#{auditlog.pagination.prev}">« Previous</span>
 
-    <span th:text="'Pagina ' + ${entries.number + 1} + ' di ' + ${entries.totalPages}"></span>
+    <span><span th:text="#{auditlog.pagination.page.pre}">Page</span> <span th:text="${entries.number + 1}"></span> <span th:text="#{auditlog.pagination.page.of}">of</span> <span th:text="${entries.totalPages}"></span></span>
 
-    <a th:if="${entries.hasNext()}" th:href="@{/log(page=${entries.number + 1}, size=${size})}">Successiva &raquo;</a>
-    <span th:unless="${entries.hasNext()}" class="disabled">Successiva &raquo;</span>
+    <a th:if="${entries.hasNext()}"
+       th:href="@{/log(page=${entries.number + 1}, size=${size}, source=${selectedSource})}" th:text="#{auditlog.pagination.next}">Next »</a>
+    <span th:unless="${entries.hasNext()}" class="disabled" th:text="#{auditlog.pagination.next}">Next »</span>
 </div>
 
+<div id="errModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#1e1e2e;border:1px solid #444;border-radius:8px;max-width:700px;width:90%;max-height:80vh;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem;border-bottom:1px solid #333;flex-shrink:0;">
+            <h3 style="margin:0;font-size:1rem;color:#f28b82;" th:text="#{auditlog.error.title}">Error details</h3>
+            <button id="errModalClose" style="background:none;border:none;color:#aaa;font-size:1.4rem;cursor:pointer;line-height:1;padding:0 .2rem;">&times;</button>
+        </div>
+        <pre id="errModalBody" style="white-space:pre-wrap;word-break:break-all;font-size:.82rem;color:#cdd6f4;margin:0;padding:1rem;overflow:auto;"></pre>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script>
+(function () {
+    const modal = document.getElementById('errModal');
+    const body  = document.getElementById('errModalBody');
+    const close = document.getElementById('errModalClose');
+
+    document.addEventListener('click', function (e) {
+        const badge = e.target.closest('.badge-err-clickable');
+        if (badge) {
+            body.textContent = badge.dataset.full || badge.textContent;
+            modal.style.display = 'flex';
+        }
+    });
+
+    close.addEventListener('click', () => modal.style.display = 'none');
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.style.display = 'none'; });
+})();
+</script>
 </body>
 </html>

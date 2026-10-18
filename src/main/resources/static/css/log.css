@@ -1,0 +1,19 @@
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--input-bg); }
+td.mono { font-family: monospace; }
+
+.badge-ok { color: var(--success-text); font-weight: 600; }
+.badge-err { color: var(--error-text); }
+
+.log-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+.log-controls .size-form { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.log-controls select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 13px; }
+
+.total-count { font-size: 13px; color: var(--text-muted); }
+
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; font-size: 13px; }
+.pagination a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.pagination a:hover { text-decoration: underline; }
+.pagination .disabled { color: var(--text-muted); opacity: 0.4; }

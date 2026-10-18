@@ -1,5 +1,6 @@
-package it.forpiller.mcpforge.history;
+package it.forpiller.mcpforge.repository;
 
+import it.forpiller.mcpforge.history.SourceRegistrationHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,4 +19,9 @@ public interface SourceRegistrationHistoryRepository extends JpaRepository<Sourc
     boolean existsByOpenApiUrl(String openApiUrl);
 
     boolean existsByBaseUrl(String baseUrl);
+
+    Optional<SourceRegistrationHistory> findFirstByNameOrOpenApiUrlOrBaseUrl(
+            String name,
+            String openApiUrl,
+            String baseUrl);
 }

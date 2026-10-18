@@ -1,58 +1,145 @@
 <!DOCTYPE html>
-<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>mcp-forge — Storico</title>
+    <title th:text="'mcp-forge — ' + #{storico.title}">mcp-forge — Sources</title>
     <th:block th:replace="~{fragments/layout :: styles}"></th:block>
-    <style>
-        .history-item {
-            display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
-            border: 1px solid var(--border); background: var(--card-bg); border-radius: 8px;
-            padding: 14px 16px; margin-bottom: 10px;
-        }
-        .history-item .name { font-weight: 700; font-size: 15px; display: block; margin-bottom: 8px; }
-        .history-fields { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; }
-        .history-fields .field-label { color: var(--text-muted); white-space: nowrap; }
-        .history-fields .field-value { font-family: monospace; color: var(--text); word-break: break-all; }
-        .history-item form { margin: 0; flex-shrink: 0; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/storico.css}">
 </head>
 <body>
 
-<th:block th:replace="~{fragments/layout :: topbar('storico')}"></th:block>
+<th:block th:replace="~{fragments/layout :: topbar('fonti')}"></th:block>
+<th:block th:replace="~{fragments/layout :: confirmModal}"></th:block>
 
 <div class="alert success" th:if="${successMessage}" th:text="${successMessage}"></div>
 <div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
 
-<h2>Storico registrazioni</h2>
-<p class="subtitle">Solo i dati inseriti nel form — non i tool generati. Utile per reinserire una fonte dopo un riavvio senza riscrivere il form.</p>
-<p class="empty" th:if="${history.isEmpty()}">Nessuna registrazione salvata ancora.</p>
-<div class="history-item" th:each="h : ${history}">
-    <div>
-        <span class="name" th:text="${h.name}"></span>
-        <div class="history-fields">
-            <span class="field-label">URL spec OpenAPI</span>
-            <span class="field-value" th:text="${h.openApiUrl}"></span>
+<h2 th:text="#{storico.title}">Source history</h2>
+<p class="subtitle" th:text="#{storico.subtitle}">Only form data — not the generated tools.</p>
+<p class="empty" th:if="${history.isEmpty()}" th:text="#{storico.empty}">No registrations saved yet.</p>
 
-            <span class="field-label">Base URL</span>
-            <span class="field-value" th:text="${h.baseUrl}"></span>
+<div class="history-item" th:each="h : ${history}" th:id="${'item-' + h.id}"
+     th:attr="data-base-url=${h.baseUrl}">
+    <button type="button" class="storico-btn edit-toggle-btn" th:text="#{storico.btn.edit}">Edit</button>
+    <div style="flex:1; padding-right: 120px;">
+        <span class="name">
+            <span th:text="${h.name}"></span>
+            <span class="active-badge" th:if="${activeSources.contains(h.name)}" th:text="#{storico.badge.active}">● active</span>
+            <span class="inactive-badge" th:unless="${activeSources.contains(h.name)}" th:text="#{storico.badge.inactive}">○ not loaded</span>
+        </span>
 
-            <span class="field-label">Header auth</span>
-            <span class="field-value" th:text="${h.authHeaderName != null and !h.authHeaderName.isBlank()} ? ${h.authHeaderName} : 'Nessuno'"></span>
+        <div class="history-fields view-fields">
+            <span class="field-label" th:text="#{storico.field.openApiUrl}">OpenAPI spec URL</span>
+            <a class="field-value field-link" th:href="${h.openApiUrl}" th:text="${h.openApiUrl}"
+               target="_blank" rel="noopener" th:if="${h.openApiUrl != null and !h.openApiUrl.isEmpty()}"></a>
+            <span th:unless="${h.openApiUrl != null and !h.openApiUrl.isEmpty()}">
+                <span class="probe-result" th:id="${'probe-result-' + h.id}"
+                      th:if="${h.baseUrl != null and !h.baseUrl.isEmpty()}" th:text="#{storico.probe.searching}">⏳ searching...</span>
+                <span class="field-value" th:unless="${h.baseUrl != null and !h.baseUrl.isEmpty()}">—</span>
+            </span>
 
-            <span class="field-label">Valore header</span>
-            <span class="field-value" th:text="${h.authHeaderValue != null and !h.authHeaderValue.isBlank()} ? ${h.authHeaderValue} : 'Nessuno'"></span>
+            <span class="field-label" th:text="#{storico.field.baseUrl}">Base URL</span>
+            <span class="field-value" th:text="${h.baseUrl != null and !h.baseUrl.isEmpty()} ? ${h.baseUrl} : '—'"></span>
+
+            <span class="field-label" th:text="#{storico.field.swaggerUi}">Swagger UI</span>
+            <span class="probe-result-ui" th:id="${'probe-ui-' + h.id}"
+                  th:if="${h.baseUrl != null and !h.baseUrl.isEmpty()}" th:text="#{storico.probe.searching}">⏳ searching...</span>
+            <span class="field-value" th:unless="${h.baseUrl != null and !h.baseUrl.isEmpty()}">—</span>
+
+            <span class="field-label" th:text="#{storico.field.auth}">Authentication</span>
+            <span class="field-value oauth2-badge" th:if="${h.hasOAuth2()}">
+                <span th:text="#{storico.auth.oauth2.label}">OAuth2 auto —</span>
+                <span th:text="${h.oauth2Username}"></span>
+                <span th:text="#{storico.auth.oauth2.on}">on</span>
+                <span th:text="${h.oauth2TokenUrl}"></span>
+            </span>
+            <span class="field-value oauth2-badge" th:if="${h.hasJsonLogin()}">
+                <span th:text="#{storico.auth.jsonlogin.label}">JSON Login —</span>
+                <span th:text="${h.jsonLoginUsername}"></span>
+                <span th:text="#{storico.auth.oauth2.on}">on</span>
+                <span th:text="${h.jsonLoginUrl}"></span>
+            </span>
+            <span class="field-value" th:unless="${h.hasOAuth2() or h.hasJsonLogin()}"
+                  th:text="${h.authHeaderName != null and !h.authHeaderName.isBlank()} ? ${h.authHeaderName} : #{storico.auth.none}">None</span>
         </div>
+
+        <form class="history-fields edit-fields"
+              th:id="${'edit-form-' + h.id}"
+              th:action="@{/fonti/{id}/update-and-reinserisci(id=${h.id})}"
+              method="post">
+
+            <label th:for="${'openApiUrl-' + h.id}" th:text="#{storico.edit.label.openApiUrl}">OpenAPI spec URL</label>
+            <input type="text" class="edit-input" th:id="${'openApiUrl-' + h.id}"
+                   name="openApiUrl" th:value="${h.openApiUrl}">
+
+            <label th:for="${'baseUrl-' + h.id}" th:text="#{storico.edit.label.baseUrl}">Base URL</label>
+            <input type="text" class="edit-input" th:id="${'baseUrl-' + h.id}"
+                   name="baseUrl" th:value="${h.baseUrl}">
+
+            <th:block th:if="${h.hasOAuth2()}">
+                <label th:for="${'oauth2TokenUrl-' + h.id}" th:text="#{storico.edit.label.tokenUrl}">Token URL</label>
+                <input type="text" class="edit-input" th:id="${'oauth2TokenUrl-' + h.id}"
+                       name="oauth2TokenUrl" th:value="${h.oauth2TokenUrl}">
+
+                <label th:for="${'oauth2ClientId-' + h.id}" th:text="#{storico.edit.label.clientId}">Client ID</label>
+                <input type="text" class="edit-input" th:id="${'oauth2ClientId-' + h.id}"
+                       name="oauth2ClientId" th:value="${h.oauth2ClientId}">
+
+                <label th:for="${'oauth2ClientSecret-' + h.id}" th:text="#{storico.edit.label.clientSecret}">Client secret</label>
+                <div class="pw-wrap">
+                    <input type="password" class="edit-input" th:id="${'oauth2ClientSecret-' + h.id}"
+                           name="oauth2ClientSecret" th:placeholder="#{storico.edit.ph.keepPwd}"
+                           autocomplete="new-password">
+                    <button type="button" class="pw-toggle" onclick="mcpForgeTogglePw(this)" th:title="#{storico.btn.show}">👁</button>
+                </div>
+
+                <label th:for="${'oauth2Username-' + h.id}" th:text="#{storico.edit.label.username}">Username</label>
+                <input type="text" class="edit-input" th:id="${'oauth2Username-' + h.id}"
+                       name="oauth2Username" th:value="${h.oauth2Username}">
+
+                <label th:for="${'oauth2Password-' + h.id}" th:text="#{storico.edit.label.password}">Password</label>
+                <div class="pw-wrap">
+                    <input type="password" class="edit-input" th:id="${'oauth2Password-' + h.id}"
+                           name="oauth2Password" th:placeholder="#{storico.edit.ph.keepPwd}"
+                           autocomplete="new-password">
+                    <button type="button" class="pw-toggle" onclick="mcpForgeTogglePw(this)" th:title="#{storico.btn.show}">👁</button>
+                </div>
+            </th:block>
+
+            <th:block th:unless="${h.hasOAuth2()}">
+                <label th:for="${'authHeaderName-' + h.id}" th:text="#{storico.edit.label.headerName}">Header name</label>
+                <input type="text" class="edit-input" th:id="${'authHeaderName-' + h.id}"
+                       name="authHeaderName" th:value="${h.authHeaderName}">
+
+                <label th:for="${'authHeaderValue-' + h.id}" th:text="#{storico.edit.label.headerValue}">Header value</label>
+                <input type="text" class="edit-input" th:id="${'authHeaderValue-' + h.id}"
+                       name="authHeaderValue" th:placeholder="#{storico.edit.ph.keepPwd}">
+            </th:block>
+        </form>
     </div>
-    <form th:action="@{/replay}" method="post">
-        <input type="hidden" name="name" th:value="${h.name}">
-        <input type="hidden" name="openApiUrl" th:value="${h.openApiUrl}">
-        <input type="hidden" name="baseUrl" th:value="${h.baseUrl}">
-        <input type="hidden" name="authHeaderName" th:value="${h.authHeaderName}">
-        <input type="hidden" name="authHeaderValue" th:value="${h.authHeaderValue}">
-        <button type="submit" class="small-btn">Reinserisci</button>
-    </form>
+
+    <div class="item-actions">
+        <form th:action="@{/fonti/{id}/reinserisci(id=${h.id})}" method="post" class="reinserisci-form"
+              th:id="${'reinserisci-form-' + h.id}">
+            <button type="submit" class="storico-btn" th:text="#{storico.btn.reinsert}">Re-register</button>
+        </form>
+
+        <div th:if="${h.hasOAuth2() or h.hasJsonLogin()}" class="oauth2-actions">
+            <form th:action="@{/fonti/{id}/refresh-token(id=${h.id})}" method="post" class="refresh-form">
+                <button type="submit" class="storico-btn btn-secondary" th:text="#{storico.btn.refreshToken}">🔄 Refresh token</button>
+            </form>
+            <button type="button" class="storico-btn btn-secondary copy-token-btn"
+                    th:attr="data-token-url=@{/fonti/{id}/token(id=${h.id})}"
+                    th:text="#{storico.btn.copyToken}">📋 Copy token</button>
+        </div>
+
+        <form th:action="@{/fonti/{id}/delete(id=${h.id})}" method="post" class="delete-form">
+            <button type="submit" class="storico-btn danger-btn" th:text="#{storico.btn.delete}">🗑 Delete</button>
+        </form>
+    </div>
 </div>
 
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/storico.js}"></script>
 </body>
 </html>

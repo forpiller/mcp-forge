@@ -14,6 +14,16 @@ public record RegisterSourceRequest(
 
         String authHeaderName,
 
-        String authHeaderValue
+        String authHeaderValue,
+
+        String oauth2TokenUrl,
+
+        String oauth2ClientId,
+
+        String oauth2ClientSecret,
+
+        String oauth2Username,
+
+        String oauth2Password
 ) {
 }

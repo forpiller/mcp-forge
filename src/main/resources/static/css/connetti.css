@@ -1,0 +1,48 @@
+.code-box {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 14px; margin-top: 8px;
+}
+.code-box pre, .code-box code {
+    margin: 0; font-family: monospace; font-size: 13px; color: var(--text);
+    white-space: pre-wrap; word-break: break-all; flex: 1;
+}
+.code-box button { margin-top: 0; flex-shrink: 0; align-self: flex-start; }
+
+.card p { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+.card h2 { margin-top: 0; }
+.card code.inline { background: var(--input-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--text); }
+
+.step-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 16px 0 2px; }
+
+.step-note {
+    margin-top: 14px; padding: 10px 14px; border-radius: 6px;
+    background: var(--input-bg); border-left: 3px solid var(--accent);
+    font-size: 13px; color: var(--text-muted); line-height: 1.5;
+}
+.step-note a { color: var(--accent); text-decoration: none; }
+.step-note a:hover { text-decoration: underline; }
+
+/* Tab bar */
+.connect-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+.connect-tabs button {
+    margin-top: 0; background: transparent;
+    border: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    color: var(--text-muted); border-radius: 8px 8px 0 0;
+    padding: 8px 14px; font-size: 13px; transition: none;
+}
+.connect-tabs button.active {
+    background: var(--card-bg); color: var(--text); font-weight: 700;
+    border-bottom-color: var(--card-bg); position: relative; z-index: 1;
+}
+.connect-tabs button:hover { color: var(--text); }
+
+/* Pannelli: nascosti di default, gestiti da JS */
+.connect-panel { display: none; border-top-left-radius: 0 !important; margin-top: 0; }
+
+.client-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; margin-left: 8px; vertical-align: middle;
+    background: var(--input-bg); color: var(--text-muted);
+}
+.client-badge.ok { background: var(--success-bg); color: var(--success-text); }

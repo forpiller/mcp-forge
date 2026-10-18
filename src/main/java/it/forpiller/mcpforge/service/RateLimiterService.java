@@ -1,19 +1,13 @@
-package it.forpiller.mcpforge.ratelimit;
+package it.forpiller.mcpforge.service;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import it.forpiller.mcpforge.config.McpForgeProperties;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Rate limiting in-memory per coppia source+tool, con Bucket4j.
- * Un bucket per chiave, creato lazy alla prima chiamata.
- */
-@Service
 public class RateLimiterService {
 
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();

@@ -11,4 +11,7 @@ public record OperationDescriptor(
         boolean hasRequestBody,
         String requestBodyDescription
 ) {
+    public OperationDescriptor withToolName(String newToolName) {
+        return new OperationDescriptor(newToolName, httpMethod, path, summary, parameters, hasRequestBody, requestBodyDescription);
+    }
 }
