@@ -125,4 +125,55 @@ class OpenApiIngestServiceTest {
         List<OperationDescriptor> ops = service.parseContent(spec);
         assertThat(ops).isEmpty();
     }
+
+    @Test
+    void inheritsPathLevelParameters() {
+        String spec = """
+                {
+                  "openapi": "3.0.0",
+                  "info": {"title": "Test", "version": "1.0"},
+                  "paths": {
+                    "/items/{itemId}": {
+                      "parameters": [
+                        {"name": "itemId", "in": "path", "required": true, "schema": {"type": "string"}}
+                      ],
+                      "get": {
+                        "operationId": "getItem",
+                        "responses": {"200": {"description": "OK"}}
+                      }
+                    }
+                  }
+                }
+                """;
+
+        List<OperationDescriptor> ops = service.parseContent(spec);
+
+        assertThat(ops).hasSize(1);
+        assertThat(ops.get(0).parameters())
+                .anyMatch(p -> p.name().equals("itemId") && p.location() == ParamLocation.PATH);
+    }
+
+    @Test
+    void addsUndeclaredPathVariableAsPathParam() {
+        String spec = """
+                {
+                  "openapi": "3.0.0",
+                  "info": {"title": "Test", "version": "1.0"},
+                  "paths": {
+                    "/widgets/{widgetId}": {
+                      "get": {
+                        "operationId": "getWidget",
+                        "responses": {"200": {"description": "OK"}}
+                      }
+                    }
+                  }
+                }
+                """;
+
+        List<OperationDescriptor> ops = service.parseContent(spec);
+
+        assertThat(ops).hasSize(1);
+        assertThat(ops.get(0).parameters())
+                .anyMatch(p -> p.name().equals("widgetId") && p.location() == ParamLocation.PATH);
+    }
 }
