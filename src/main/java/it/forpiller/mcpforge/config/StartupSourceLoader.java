@@ -30,11 +30,16 @@ public class StartupSourceLoader implements ApplicationRunner {
         this.cacheService = cacheService;
     }
 
+    private static final String MANAGEMENT_SOURCE_NAME = "mcp-forge-management";
+    private static final String MANAGEMENT_OPENAPI_URL  = "http://localhost:8090/api/management/openapi.json";
+    private static final String MANAGEMENT_BASE_URL     = "http://localhost:8090";
+
     @Override
     public void run(ApplicationArguments args) {
         List<SourceRegistrationInput> all = historyService.findAllInputs();
         if (all.isEmpty()) {
-            log.info("Nessuna fonte nello storico — avvio senza tool pre-caricati");
+            log.info("Nessuna fonte nello storico — registro la Management API di default");
+            seedManagementSource();
             return;
         }
         log.info("Auto-reload: {} fonte/i trovate nello storico", all.size());
@@ -49,6 +54,18 @@ public class StartupSourceLoader implements ApplicationRunner {
             }
         }
         log.info("Auto-reload completato: {}/{} fonti caricate", ok, all.size());
+    }
+
+    private void seedManagementSource() {
+        SourceRegistrationInput input = new SourceRegistrationInput(
+                MANAGEMENT_SOURCE_NAME, MANAGEMENT_OPENAPI_URL, MANAGEMENT_BASE_URL,
+                null, null, null, null, null, null, null, null, null, null, null);
+        try {
+            List<String> tools = sourceRegistrationService.register(input);
+            log.info("Management API registrata di default: {} tool", tools.size());
+        } catch (Exception e) {
+            log.warn("Impossibile registrare la Management API di default: {}", e.getMessage());
+        }
     }
 
     private List<String> loadEntry(SourceRegistrationInput entry) {

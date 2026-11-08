@@ -13,7 +13,10 @@
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
     <h2 style="margin:0;" th:text="#{ports.title}">Servizi</h2>
     <div style="display:flex; gap:8px; align-items:center;">
-        <button type="button" class="small-btn btn-secondary" id="btnDiscover" th:text="#{ports.btn.discover}">⚡ Discover</button>
+        <button type="button" class="small-btn btn-secondary" id="btnDiscover">
+            <i class="fa-solid fa-satellite-dish" id="discoverIcon"></i>
+            <span id="discoverLabel" th:text="#{ports.btn.discover.label}">Discover</span>
+        </button>
         <button type="button" class="small-btn btn-secondary" id="btnNewService" th:text="#{ports.btn.add}">+ Aggiungi</button>
     </div>
 </div>
@@ -143,6 +146,8 @@
         </th:block>
         <span class="action-result" style="display:none"></span>
     </div>
+
+    <div class="card-loading-bar"></div>
 
     <!-- Pannello configurazione (nascosto di default) -->
     <div class="config-panel" style="display:none" th:id="${'config-' + p.sourceName}">

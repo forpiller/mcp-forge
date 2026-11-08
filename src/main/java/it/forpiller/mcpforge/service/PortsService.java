@@ -36,7 +36,7 @@ public class PortsService {
     public List<PortInfo> listAll() {
         List<PortInfo> list = new ArrayList<>();
         list.add(selfInfo());
-        repository.findAllByOrderByLastUsedAtDesc().stream()
+        repository.findAllByOrderByLastUsedAtDesc().parallelStream()
                 .map(this::toPortInfo)
                 .forEach(list::add);
         list = deduplicateByContainer(list);

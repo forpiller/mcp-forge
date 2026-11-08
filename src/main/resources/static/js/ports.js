@@ -12,9 +12,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initStaticHandlers() {
     document.getElementById('btnDiscover')?.addEventListener('click', async () => {
         const btn = document.getElementById('btnDiscover');
+        const icon = document.getElementById('discoverIcon');
+        const label = document.getElementById('discoverLabel');
         btn.disabled = true;
-        const origText = btn.textContent;
-        btn.textContent = '...';
+        if (icon) { icon.className = 'fa-solid fa-spinner fa-spin'; }
+        if (label) { label.textContent = _t.discoverSearching || 'Ricerca...'; }
         try {
             const res = await fetch('/ports/discover', {method: 'POST'});
             const data = await res.json();
@@ -27,7 +29,8 @@ function initStaticHandlers() {
             alert(_t.networkError || 'Errore di rete');
         } finally {
             btn.disabled = false;
-            btn.textContent = origText;
+            if (icon) { icon.className = 'fa-solid fa-satellite-dish'; }
+            if (label) { label.textContent = _t.discoverLabel || 'Discover'; }
         }
     });
 
@@ -96,31 +99,57 @@ function initStaticHandlers() {
         ?.addEventListener('click', () => browseDir('ns-dir', null));
 }
 
+// ── Card loading helpers ─────────────────────────────────────────────
+function setCardLoading(name, loading) {
+    const card = document.getElementById('port-card-' + name);
+    if (!card) return;
+    if (loading) {
+        card.classList.add('port-card--loading');
+    } else {
+        card.classList.remove('port-card--loading');
+    }
+}
+
+async function pollUntilStatusChanges(name, expectUp, maxWaitMs = 30000) {
+    const interval = 1200;
+    const start = Date.now();
+    while (Date.now() - start < maxWaitMs) {
+        await new Promise(r => setTimeout(r, interval));
+        try {
+            const res = await fetch(`/ports/${encodeURIComponent(name)}/status`);
+            const data = await res.json();
+            if (data.up === expectUp) {
+                await refreshCardList();
+                return;
+            }
+        } catch (_) { /* retry */ }
+    }
+    // timeout — refresh anyway
+    await refreshCardList();
+}
+
 // Handler per elementi dentro le card (richiamato dopo ogni refresh della lista)
 function initCardHandlers() {
     document.querySelectorAll('.btn-restart').forEach(btn => {
         btn.addEventListener('click', async () => {
             const name = btn.dataset.name;
-            btn.disabled = true;
-            btn.textContent = '...';
+            setCardLoading(name, true);
             try {
                 const res = await fetch(`/ports/${encodeURIComponent(name)}/restart`, {method: 'POST'});
                 const data = await res.json();
-                btn.textContent = _t.restart || 'Riavvia';
                 if (data.needsConfig) {
+                    setCardLoading(name, false);
                     openConfigPanel(name);
                     showResult(btn, _t.configureCommand || 'Configura il comando di avvio', false);
                 } else if (data.success) {
-                    const delay = name === 'mcp-forge' ? 6000 : 3000;
-                    setTimeout(() => refreshCardList(), delay);
+                    await pollUntilStatusChanges(name, true, 30000);
                 } else {
+                    setCardLoading(name, false);
                     showResult(btn, _t.error || 'Errore', false);
                 }
             } catch (e) {
-                btn.textContent = _t.restart || 'Riavvia';
+                setCardLoading(name, false);
                 showResult(btn, _t.networkError || 'Errore di rete', false);
-            } finally {
-                btn.disabled = false;
             }
         });
     });
@@ -128,19 +157,19 @@ function initCardHandlers() {
     document.querySelectorAll('.btn-kill').forEach(btn => {
         btn.addEventListener('click', async () => {
             const name = btn.dataset.name;
-            btn.disabled = true;
+            setCardLoading(name, true);
             try {
                 const res = await fetch(`/ports/${encodeURIComponent(name)}/kill`, {method: 'POST'});
                 const data = await res.json();
                 if (data.success) {
-                    setTimeout(() => refreshCardList(), 1000);
+                    await pollUntilStatusChanges(name, false, 15000);
                 } else {
+                    setCardLoading(name, false);
                     showResult(btn, _t.error || 'Errore', false);
                 }
             } catch (e) {
+                setCardLoading(name, false);
                 showResult(btn, _t.networkError || 'Errore di rete', false);
-            } finally {
-                btn.disabled = false;
             }
         });
     });
@@ -148,22 +177,23 @@ function initCardHandlers() {
     document.querySelectorAll('.btn-start').forEach(btn => {
         btn.addEventListener('click', async () => {
             const name = btn.dataset.name;
-            btn.disabled = true;
+            setCardLoading(name, true);
             try {
                 const res = await fetch(`/ports/${encodeURIComponent(name)}/start`, {method: 'POST'});
                 const data = await res.json();
                 if (data.needsConfig) {
+                    setCardLoading(name, false);
                     openConfigPanel(name);
                     showResult(btn, _t.configureCommand || 'Configura il comando di avvio', false);
                 } else if (data.success) {
-                    setTimeout(() => refreshCardList(), 3000);
+                    await pollUntilStatusChanges(name, true, 30000);
                 } else {
+                    setCardLoading(name, false);
                     showResult(btn, _t.error || 'Errore', false);
                 }
             } catch (e) {
+                setCardLoading(name, false);
                 showResult(btn, _t.networkError || 'Errore di rete', false);
-            } finally {
-                btn.disabled = false;
             }
         });
     });

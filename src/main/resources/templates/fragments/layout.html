@@ -4,10 +4,12 @@
 <th:block th:fragment="styles">
 <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
 <link rel="stylesheet" th:href="@{/css/global.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </th:block>
 </head>
 <body>
 <th:block th:fragment="topbar(active)">
+<div id="page-nav-loader"></div>
 <div class="topbar">
     <div>
         <h1>MCP-FORGE</h1>

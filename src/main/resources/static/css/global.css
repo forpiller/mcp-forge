@@ -133,6 +133,27 @@ button.small-btn { margin-top: 0; padding: 6px 14px; font-size: 13px; }
 .footer-nav a:hover { color: var(--text); }
 .footer-nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+/* ── Page navigation loader ──────────────────────────────── */
+#page-nav-loader {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    z-index: 9999;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, var(--accent) 40%, #00e5ff 60%, transparent 100%);
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+#page-nav-loader.loading {
+    opacity: 1;
+    animation: nav-loader-slide 1s linear infinite;
+}
+@keyframes nav-loader-slide {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 .lang-switcher { display: flex; gap: 4px; align-items: center; margin-left: 12px; }
 .lang-btn {
     background: transparent; color: var(--text-muted); border: 1px solid var(--border);

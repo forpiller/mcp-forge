@@ -4,6 +4,7 @@
     border-radius: 10px;
     padding: 18px 20px;
     margin-bottom: 16px;
+    position: relative;
 }
 
 .port-header {
@@ -237,4 +238,36 @@ button.disabled {
     flex-shrink: 0;
     padding: 6px 10px;
     font-size: 14px;
+}
+
+/* ── Card loading state ─────────────────────────────────── */
+.port-card--loading {
+    position: relative;
+    pointer-events: none;
+}
+.port-card--loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.45);
+    z-index: 2;
+}
+.port-card--loading .card-loading-bar {
+    display: block !important;
+}
+.card-loading-bar {
+    display: none;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 0 0 10px 10px;
+    background: linear-gradient(90deg, transparent 0%, #4a90d9 40%, #00c8ff 60%, transparent 100%);
+    background-size: 200% 100%;
+    animation: loading-slide 1.2s linear infinite;
+    z-index: 3;
+}
+@keyframes loading-slide {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }

@@ -33,6 +33,8 @@ public class I18nController {
             Map.entry("nameRequired", msg("ports.msg.nameRequired", locale)),
             Map.entry("discoverAdded", msg("ports.msg.discoverAdded", locale)),
             Map.entry("discoverNone", msg("ports.msg.discoverNone", locale)),
+            Map.entry("discoverSearching", msg("ports.msg.discoverSearching", locale)),
+            Map.entry("discoverLabel", msg("ports.btn.discover.label", locale)),
             Map.entry("removeConfirm", msg("ports.msg.removeConfirm", locale)),
             Map.entry("removed", msg("ports.msg.removed", locale))
         );

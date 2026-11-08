@@ -56,3 +56,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 4000);
     });
 });
+
+/** Loader barra in cima durante la navigazione tra pagine */
+(function () {
+    var loader = document.getElementById('page-nav-loader');
+    if (!loader) return;
+
+    function showLoader() {
+        loader.classList.add('loading');
+    }
+
+    document.querySelectorAll('.topnav a[href], .footer-nav a[href]').forEach(function (a) {
+        var href = a.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('?') || href.startsWith('javascript')) return;
+        a.addEventListener('click', function (e) {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+            showLoader();
+        });
+    });
+
+    // Sicurezza: rimuovi se la pagina ha finito di caricare per qualsiasi motivo
+    window.addEventListener('pageshow', function () {
+        loader.classList.remove('loading');
+    });
+})();
